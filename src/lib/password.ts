@@ -71,7 +71,9 @@ export function invalidateUserPasswordResetSessions(userId: number) {
 
 export const passwordResetSessionCookieName = "password_reset_session";
 
-export function validatePasswordResetSessionRequest(context: APIContext) {
+export function validatePasswordResetSessionRequest(
+	context: APIContext
+): PasswordResetSessionValidationResult {
 	const sessionId = context.cookies.get(passwordResetSessionCookieName)?.value ?? null;
 	if (sessionId === null) {
 		return { session: null, user: null };
@@ -177,7 +179,7 @@ interface PasswordResetSession {
 	twoFactorVerified: boolean;
 }
 
-export type PasswordResetSessionAndUser =
+export type PasswordResetSessionValidationResult =
 	| {
 			session: PasswordResetSession;
 			user: User;

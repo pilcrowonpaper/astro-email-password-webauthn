@@ -4,7 +4,7 @@ import { encodeBase32 } from "@oslojs/encoding";
 import type { User } from "./user";
 import type { APIContext } from "astro";
 
-export function validateSession(sessionId: string): SessionAndUser {
+export function validateSession(sessionId: string): SessionValidationResult {
 	const row = db.queryOne(
 		`
 SELECT session.id, session.user_id, session.expires_at, session.authenticated_at, session.two_factor_verified, user.id, user.email, user.username, user.email_verified, user.created_at, IIF(totp_credential.id IS NOT NULL, 1, 0), IIF(passkey_credential.id IS NOT NULL, 1, 0), IIF(security_key_credential.id IS NOT NULL, 1, 0) FROM session
@@ -59,7 +59,7 @@ export async function invalidateSession(sessionId: string): Promise<void> {
 	db.execute("DELETE FROM session WHERE id = ?", [sessionId]);
 }
 
-export function validateRequest(context: APIContext): SessionAndUser {
+export function validateRequest(context: APIContext): SessionValidationResult {
 	const sessionId = context.cookies.get("session")?.value ?? null;
 	if (sessionId === null) {
 		return {
@@ -142,4 +142,4 @@ export interface Session extends SessionFlags {
 	createdAt: Date;
 }
 
-type SessionAndUser = { session: Session; user: User } | { session: null; user: null };
+type SessionValidationResult = { session: Session; user: User } | { session: null; user: null };
