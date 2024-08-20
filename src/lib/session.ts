@@ -7,7 +7,7 @@ import type { APIContext } from "astro";
 export function validateSession(sessionId: string): SessionValidationResult {
 	const row = db.queryOne(
 		`
-SELECT session.id, session.user_id, session.expires_at, session.authenticated_at, session.two_factor_verified, user.id, user.email, user.username, user.email_verified, user.created_at, IIF(totp_credential.id IS NOT NULL, 1, 0), IIF(passkey_credential.id IS NOT NULL, 1, 0), IIF(security_key_credential.id IS NOT NULL, 1, 0) FROM session
+SELECT session.id, session.user_id, session.expires_at, session.two_factor_verified, user.id, user.email, user.username, user.email_verified, user.created_at, IIF(totp_credential.id IS NOT NULL, 1, 0), IIF(passkey_credential.id IS NOT NULL, 1, 0), IIF(security_key_credential.id IS NOT NULL, 1, 0) FROM session
 INNER JOIN user ON session.user_id = user.id
 LEFT JOIN totp_credential ON session.user_id = totp_credential.user_id
 LEFT JOIN passkey_credential ON user.id = passkey_credential.user_id
@@ -24,18 +24,17 @@ WHERE session.id = ?
 		id: row.string(0),
 		userId: row.number(1),
 		expiresAt: new Date(row.number(2) * 1000),
-		createdAt: new Date(row.number(3) * 1000),
-		twoFactorVerified: Boolean(row.number(4))
+		twoFactorVerified: Boolean(row.number(3))
 	};
 	const user: User = {
-		id: row.number(5),
-		email: row.string(6),
-		username: row.string(7),
-		emailVerified: Boolean(row.number(8)),
-		createdAt: new Date(row.number(9) * 1000),
-		registeredTOTP: Boolean(row.number(10)),
-		registeredPasskey: Boolean(row.number(11)),
-		registeredSecurityKey: Boolean(row.number(12)),
+		id: row.number(4),
+		email: row.string(5),
+		username: row.string(6),
+		emailVerified: Boolean(row.number(7)),
+		createdAt: new Date(row.number(8) * 1000),
+		registeredTOTP: Boolean(row.number(9)),
+		registeredPasskey: Boolean(row.number(10)),
+		registeredSecurityKey: Boolean(row.number(11)),
 		registered2FA: false
 	};
 	if (user.registeredPasskey || user.registeredSecurityKey || user.registeredTOTP) {
@@ -101,26 +100,18 @@ export function createSession(userId: number, flags: SessionFlags): Session {
 	crypto.getRandomValues(idBytes);
 	const id = encodeBase32(idBytes).toLowerCase();
 
-	const expiresAtUnix = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30;
-	const expiresAt = new Date(expiresAtUnix * 1000);
-
-	const createdAtUnix = Math.floor(Date.now() / 1000);
-	const createdAt = new Date(createdAtUnix * 1000);
-
 	const session: Session = {
 		id,
 		userId,
-		expiresAt,
-		createdAt,
+		expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
 		twoFactorVerified: flags.twoFactorVerified
 	};
 	db.execute(
-		"INSERT INTO session (id, user_id, expires_at, authenticated_at, two_factor_verified) VALUES (?, ?, ?, ?, ?)",
+		"INSERT INTO session (id, user_id, expires_at, two_factor_verified) VALUES (?, ?, ?, ?, ?)",
 		[
 			session.id,
 			session.userId,
 			Math.floor(session.expiresAt.getTime() / 1000),
-			Math.floor(session.createdAt.getTime() / 1000),
 			Number(session.twoFactorVerified)
 		]
 	);
@@ -139,7 +130,6 @@ export interface Session extends SessionFlags {
 	id: string;
 	expiresAt: Date;
 	userId: number;
-	createdAt: Date;
 }
 
 type SessionValidationResult = { session: Session; user: User } | { session: null; user: null };
