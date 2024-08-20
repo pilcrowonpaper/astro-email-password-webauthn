@@ -137,11 +137,7 @@ export async function POST(context: APIContext): Promise<Response> {
 			});
 		}
 		// Store the credential ID, algorithm (ES256), and public key with the user's user ID
-		const encodedPublicKey = new ECDSAPublicKey(
-			p256,
-			cosePublicKey.x,
-			cosePublicKey.y
-		).encodeSEC1Uncompressed();
+		const encodedPublicKey = new ECDSAPublicKey(p256, cosePublicKey.x, cosePublicKey.y).encodeSEC1Uncompressed();
 		credential = {
 			id: authenticatorData.credential.id,
 			userId: context.locals.user.id,

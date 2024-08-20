@@ -24,13 +24,7 @@ if (user.registered2FA && !session.twoFactorVerified) {
 			<form id="form-reset">
 				<input id="form-reset.email" name="email" value={session.email} hidden required /><br />
 				<label for="form-reset.password">Password</label>
-				<input
-					type="password"
-					id="form-reset.password"
-					name="password"
-					autocomplete="new-password"
-					required
-				/><br />
+				<input type="password" id="form-reset.password" name="password" autocomplete="new-password" required /><br />
 				<button>Reset password</button>
 				<p id="form-reset.message"></p>
 			</form>

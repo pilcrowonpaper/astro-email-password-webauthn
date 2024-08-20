@@ -7,10 +7,9 @@ export function verifyEmailInput(email: string): boolean {
 }
 
 export function getUserEmailVerificationRequest(userId: number): EmailVerificationRequest | null {
-	const row = db.queryOne(
-		"SELECT id, code, email, expires_at FROM email_verification_request WHERE user_id = ?",
-		[userId]
-	);
+	const row = db.queryOne("SELECT id, code, email, expires_at FROM email_verification_request WHERE user_id = ?", [
+		userId
+	]);
 	if (row === null) {
 		return null;
 	}
@@ -28,10 +27,7 @@ export function getUserEmailVerificationRequest(userId: number): EmailVerificati
 	return request;
 }
 
-export function createEmailVerificationRequest(
-	userId: number,
-	email: string
-): EmailVerificationRequest {
+export function createEmailVerificationRequest(userId: number, email: string): EmailVerificationRequest {
 	deleteUserEmailVerificationRequest(userId);
 	const code = generateRandomOTP();
 	const expiresAt = new Date(Date.now() + 1000 * 60 * 10);

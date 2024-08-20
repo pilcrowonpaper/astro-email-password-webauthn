@@ -38,11 +38,7 @@ if (session.twoFactorVerified) {
 			</div>
 			<a href="/recover-account">Use recovery code</a>
 			{user.registeredTOTP && <a href="/reset-password/2fa/totp">Use autheticator apps</a>}
-			{
-				user.registeredSecurityKey && (
-					<a href="/reset-password/2fa/security-key">Use security keys</a>
-				)
-			}
+			{user.registeredSecurityKey && <a href="/reset-password/2fa/security-key">Use security keys</a>}
 		</main>
 	</body>
 </html>

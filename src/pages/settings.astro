@@ -44,13 +44,8 @@ const recoveryCode = getUserRecoverCode(Astro.locals.user.id);
 				<h2>Update password</h2>
 				<form id="form-password">
 					<label for="form-password.password">Current password</label>
-					<input
-						type="password"
-						id="form-email.password"
-						name="password"
-						autocomplete="current-password"
-						required
-					/><br />
+					<input type="password" id="form-email.password" name="password" autocomplete="current-password" required /><br
+					/>
 					<label for="form-password.new-password">New password</label>
 					<input
 						type="password"
@@ -83,10 +78,7 @@ const recoveryCode = getUserRecoverCode(Astro.locals.user.id);
 							return (
 								<li id={`item-passkey-${encodeHexLowerCase(credential.id)}`}>
 									<p>{credential.name}</p>
-									<button
-										data-credential-id={encodeBase64(credential.id)}
-										class="button-delete-passkey"
-									>
+									<button data-credential-id={encodeBase64(credential.id)} class="button-delete-passkey">
 										Delete
 									</button>
 								</li>
@@ -98,20 +90,14 @@ const recoveryCode = getUserRecoverCode(Astro.locals.user.id);
 			</section>
 			<section>
 				<h2>Security keys</h2>
-				<p>
-					Security keys are WebAuthn credentials that can only be used for two-factor
-					authentication.
-				</p>
+				<p>Security keys are WebAuthn credentials that can only be used for two-factor authentication.</p>
 				<ul>
 					{
 						securityKeyCredentials.map((credential) => {
 							return (
 								<li id={`item-security-key-${encodeHexLowerCase(credential.id)}`}>
 									<p>{credential.name}</p>
-									<button
-										data-credential-id={encodeBase64(credential.id)}
-										class="button-delete-security-key"
-									>
+									<button data-credential-id={encodeBase64(credential.id)} class="button-delete-security-key">
 										Delete
 									</button>
 								</li>
@@ -199,8 +185,7 @@ const recoveryCode = getUserRecoverCode(Astro.locals.user.id);
 	for (const button of passkeyDeleteButtons) {
 		button.addEventListener("click", async (e) => {
 			const _button = e.target as HTMLButtonElement;
-			const encodedCredentialId =
-				_button.attributes.getNamedItem("data-credential-id")?.value ?? null;
+			const encodedCredentialId = _button.attributes.getNamedItem("data-credential-id")?.value ?? null;
 			if (encodedCredentialId === null) {
 				throw new Error();
 			}
@@ -222,8 +207,7 @@ const recoveryCode = getUserRecoverCode(Astro.locals.user.id);
 	for (const button of securityKeyDeleteButtons) {
 		button.addEventListener("click", async (e) => {
 			const _button = e.target as HTMLButtonElement;
-			const encodedCredentialId =
-				_button.attributes.getNamedItem("data-credential-id")?.value ?? null;
+			const encodedCredentialId = _button.attributes.getNamedItem("data-credential-id")?.value ?? null;
 			if (encodedCredentialId === null) {
 				throw new Error();
 			}

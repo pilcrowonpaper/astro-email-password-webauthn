@@ -52,16 +52,13 @@ export function createPasswordResetSession(userId: number, email: string): Passw
 		emailVerified: false,
 		twoFactorVerified: false
 	};
-	db.execute(
-		"INSERT INTO password_reset_session (id, user_id, email, code, expires_at) VALUES (?, ?, ?, ?, ?)",
-		[
-			session.id,
-			session.userId,
-			session.email,
-			session.code,
-			Math.floor(session.expiresAt.getTime() / 1000)
-		]
-	);
+	db.execute("INSERT INTO password_reset_session (id, user_id, email, code, expires_at) VALUES (?, ?, ?, ?, ?)", [
+		session.id,
+		session.userId,
+		session.email,
+		session.code,
+		Math.floor(session.expiresAt.getTime() / 1000)
+	]);
 	return session;
 }
 
@@ -71,9 +68,7 @@ export function invalidateUserPasswordResetSessions(userId: number) {
 
 export const passwordResetSessionCookieName = "password_reset_session";
 
-export function validatePasswordResetSessionRequest(
-	context: APIContext
-): PasswordResetSessionValidationResult {
+export function validatePasswordResetSessionRequest(context: APIContext): PasswordResetSessionValidationResult {
 	const sessionId = context.cookies.get(passwordResetSessionCookieName)?.value ?? null;
 	if (sessionId === null) {
 		return { session: null, user: null };
@@ -122,10 +117,7 @@ WHERE id = ?`,
 	return { session, user };
 }
 
-export function setPasswordResetSessionCookie(
-	context: APIContext,
-	session: PasswordResetSession
-): void {
+export function setPasswordResetSessionCookie(context: APIContext, session: PasswordResetSession): void {
 	context.cookies.set(passwordResetSessionCookieName, session.id, {
 		expires: session.expiresAt,
 		sameSite: "lax",
@@ -154,10 +146,10 @@ export function invalidatePasswordResetSession(sessionId: string): void {
 }
 
 export function verifyPasswordResetSessionEmail(sessionId: string, email: string): boolean {
-	const result = db.execute(
-		"UPDATE password_reset_session SET email_verified = 1 WHERE id = ? AND email = ?",
-		[sessionId, email]
-	);
+	const result = db.execute("UPDATE password_reset_session SET email_verified = 1 WHERE id = ? AND email = ?", [
+		sessionId,
+		email
+	]);
 	return result.changes > 0;
 }
 

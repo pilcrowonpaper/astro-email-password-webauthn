@@ -46,10 +46,7 @@ export async function POST(context: APIContext): Promise<Response> {
 		});
 	}
 	if (!verifyExpirationDate(verificationRequest.expiresAt)) {
-		verificationRequest = createEmailVerificationRequest(
-			verificationRequest.userId,
-			verificationRequest.email
-		);
+		verificationRequest = createEmailVerificationRequest(verificationRequest.userId, verificationRequest.email);
 		sendVerificationEmail(verificationRequest.email, verificationRequest.code);
 		return new Response("The verification code was expired. We sent another code to your inbox.", {
 			status: 400

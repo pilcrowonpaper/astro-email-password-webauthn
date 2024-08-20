@@ -1,7 +1,4 @@
-import {
-	validatePasswordResetSessionRequest,
-	verifyPasswordResetSessionEmail
-} from "@lib/password";
+import { validatePasswordResetSessionRequest, verifyPasswordResetSessionEmail } from "@lib/password";
 import { ObjectParser } from "@pilcrowjs/object-parser";
 import { FixedRefillTokenBucket } from "@lib/rate-limit";
 import { verifyUserEmail } from "@lib/user";

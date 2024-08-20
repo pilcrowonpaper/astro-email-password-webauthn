@@ -106,15 +106,12 @@ export function createSession(userId: number, flags: SessionFlags): Session {
 		expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
 		twoFactorVerified: flags.twoFactorVerified
 	};
-	db.execute(
-		"INSERT INTO session (id, user_id, expires_at, two_factor_verified) VALUES (?, ?, ?, ?, ?)",
-		[
-			session.id,
-			session.userId,
-			Math.floor(session.expiresAt.getTime() / 1000),
-			Number(session.twoFactorVerified)
-		]
-	);
+	db.execute("INSERT INTO session (id, user_id, expires_at, two_factor_verified) VALUES (?, ?, ?, ?, ?)", [
+		session.id,
+		session.userId,
+		Math.floor(session.expiresAt.getTime() / 1000),
+		Number(session.twoFactorVerified)
+	]);
 	return session;
 }
 

@@ -40,11 +40,7 @@ if (session.twoFactorVerified) {
 				<p id="form-totp.message"></p>
 			</form>
 			{user.registeredPasskey && <a href="/reset-password/2fa/passkeys">Use passkeys</a>}
-			{
-				user.registeredSecurityKey && (
-					<a href="/reset-password/2fa/security-key">Use security keys</a>
-				)
-			}
+			{user.registeredSecurityKey && <a href="/reset-password/2fa/security-key">Use security keys</a>}
 			<section>
 				<h2>Use your recovery code instead</h2>
 				<form id="form-recovery-code">

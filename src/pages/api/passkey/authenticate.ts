@@ -6,22 +6,13 @@ import {
 	createAssertionSignatureMessage,
 	coseAlgorithmRS256
 } from "@oslojs/webauthn";
-import {
-	decodePKIXECDSASignature,
-	decodeSEC1PublicKey,
-	p256,
-	verifyECDSASignature
-} from "@oslojs/crypto/ecdsa";
+import { decodePKIXECDSASignature, decodeSEC1PublicKey, p256, verifyECDSASignature } from "@oslojs/crypto/ecdsa";
 import { ObjectParser } from "@pilcrowjs/object-parser";
 import { decodeBase64 } from "@oslojs/encoding";
 import { verifyWebAuthnChallenge, getPasskeyCredential } from "@lib/webauthn";
 import { createSession, setSessionCookie, verifySession2FA } from "@lib/session";
 import { sha256 } from "@oslojs/crypto/sha2";
-import {
-	decodePKCS1RSAPublicKey,
-	sha256ObjectIdentifier,
-	verifyRSASSAPKCS1v15Signature
-} from "@oslojs/crypto/rsa";
+import { decodePKCS1RSAPublicKey, sha256ObjectIdentifier, verifyRSASSAPKCS1v15Signature } from "@oslojs/crypto/rsa";
 
 import type { APIContext } from "astro";
 import type { ClientData, AuthenticatorData } from "@oslojs/webauthn";
@@ -124,12 +115,7 @@ export async function POST(context: APIContext): Promise<Response> {
 	} else if (credential.algorithmId === coseAlgorithmRS256) {
 		const rsaPublicKey = decodePKCS1RSAPublicKey(credential.publicKey);
 		const hash = sha256(createAssertionSignatureMessage(authenticatorDataBytes, clientDataJSON));
-		validSignature = verifyRSASSAPKCS1v15Signature(
-			rsaPublicKey,
-			sha256ObjectIdentifier,
-			hash,
-			signatureBytes
-		);
+		validSignature = verifyRSASSAPKCS1v15Signature(rsaPublicKey, sha256ObjectIdentifier, hash, signatureBytes);
 	} else {
 		return new Response("Internal error", {
 			status: 500

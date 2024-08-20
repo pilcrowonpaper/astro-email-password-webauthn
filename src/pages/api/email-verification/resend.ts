@@ -24,10 +24,7 @@ export async function POST(context: APIContext): Promise<Response> {
 			status: 429
 		});
 	}
-	verificationRequest = createEmailVerificationRequest(
-		verificationRequest.userId,
-		verificationRequest.email
-	);
+	verificationRequest = createEmailVerificationRequest(verificationRequest.userId, verificationRequest.email);
 	sendVerificationEmail(verificationRequest.email, verificationRequest.code);
 	return new Response(null, { status: 204 });
 }

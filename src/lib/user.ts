@@ -77,9 +77,7 @@ export function getUserRecoverCode(userId: number): string {
 }
 
 export function getUserTOTPKey(userId: number): Uint8Array | null {
-	const row = db.queryOne("SELECT totp_credential.key FROM totp_credential WHERE user_id = ?", [
-		userId
-	]);
+	const row = db.queryOne("SELECT totp_credential.key FROM totp_credential WHERE user_id = ?", [userId]);
 	if (row === null) {
 		throw new Error("Invalid user ID");
 	}
@@ -119,10 +117,11 @@ export function verifyUserRecoveryCode(userId: number, recoveryCode: string): bo
 	const newRecoveryCode = generateRandomRecoveryCode();
 	try {
 		db.execute("BEGIN TRANSACTION", []);
-		const result = db.execute(
-			"UPDATE user SET recovery_code = ? WHERE id = ? AND recovery_code = ?",
-			[newRecoveryCode, userId, recoveryCode]
-		);
+		const result = db.execute("UPDATE user SET recovery_code = ? WHERE id = ? AND recovery_code = ?", [
+			newRecoveryCode,
+			userId,
+			recoveryCode
+		]);
 		if (result.changes < 1) {
 			db.execute("COMMIT", []);
 			return false;
@@ -178,11 +177,7 @@ export async function updateUserPasswordWithEmailVerification(
 	}
 }
 
-export async function updateUserPassword(
-	sessionId: string,
-	userId: number,
-	password: string
-): Promise<void> {
+export async function updateUserPassword(sessionId: string, userId: number, password: string): Promise<void> {
 	const passwordHash = await hashPassword(password);
 	try {
 		db.execute("BEGIN TRANSACTION", []);

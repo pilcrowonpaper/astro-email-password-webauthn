@@ -53,12 +53,8 @@ const encodedCredentialUserId = encodeBase64(credentialUserId);
 
 	const createCredentialButton = document.getElementById("button-create-credential")!;
 	const form = document.getElementById("form-register-credential") as HTMLFormElement;
-	const submitButton = document.getElementById(
-		"form-register-credential.button"
-	) as HTMLButtonElement;
-	const credentialDisplayNameInput = document.getElementById(
-		"credential-display-name"
-	) as HTMLInputElement;
+	const submitButton = document.getElementById("form-register-credential.button") as HTMLButtonElement;
+	const credentialDisplayNameInput = document.getElementById("credential-display-name") as HTMLInputElement;
 	const credentialNameInput = document.getElementById("credential-name") as HTMLInputElement;
 	const credentialUserIdInput = document.getElementById("credential_user_id") as HTMLInputElement;
 	const credentialIdsInput = document.getElementById("credential_ids") as HTMLInputElement;

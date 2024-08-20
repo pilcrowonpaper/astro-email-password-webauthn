@@ -136,11 +136,7 @@ export async function POST(context: APIContext): Promise<Response> {
 				status: 400
 			});
 		}
-		const encodedPublicKey = new ECDSAPublicKey(
-			p256,
-			cosePublicKey.x,
-			cosePublicKey.y
-		).encodeSEC1Uncompressed();
+		const encodedPublicKey = new ECDSAPublicKey(p256, cosePublicKey.x, cosePublicKey.y).encodeSEC1Uncompressed();
 		credential = {
 			id: authenticatorData.credential.id,
 			userId: context.locals.user.id,

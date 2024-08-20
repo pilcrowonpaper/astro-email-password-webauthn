@@ -20,10 +20,9 @@ export function verifyWebAuthnChallenge(challenge: Uint8Array): boolean {
 }
 
 export function getUserPasskeyCredentials(userId: number): WebAuthnUserCredential[] {
-	const rows = db.query(
-		"SELECT id, user_id, name, algorithm, public_key FROM passkey_credential WHERE user_id = ?",
-		[userId]
-	);
+	const rows = db.query("SELECT id, user_id, name, algorithm, public_key FROM passkey_credential WHERE user_id = ?", [
+		userId
+	]);
 	const credentials: WebAuthnUserCredential[] = [];
 	for (const row of rows) {
 		const credential: WebAuthnUserCredential = {
@@ -39,10 +38,9 @@ export function getUserPasskeyCredentials(userId: number): WebAuthnUserCredentia
 }
 
 export function getPasskeyCredential(credentialId: Uint8Array): WebAuthnUserCredential | null {
-	const row = db.queryOne(
-		"SELECT id, user_id, name, algorithm, public_key FROM passkey_credential WHERE id = ?",
-		[credentialId]
-	);
+	const row = db.queryOne("SELECT id, user_id, name, algorithm, public_key FROM passkey_credential WHERE id = ?", [
+		credentialId
+	]);
 	if (row === null) {
 		return null;
 	}
@@ -57,16 +55,13 @@ export function getPasskeyCredential(credentialId: Uint8Array): WebAuthnUserCred
 }
 
 export function createPasskeyCredential(credential: WebAuthnUserCredential): void {
-	db.execute(
-		"INSERT INTO passkey_credential (id, user_id, name, algorithm, public_key) VALUES (?, ?, ?, ?, ?)",
-		[
-			credential.id,
-			credential.userId,
-			credential.name,
-			credential.algorithmId,
-			credential.publicKey
-		]
-	);
+	db.execute("INSERT INTO passkey_credential (id, user_id, name, algorithm, public_key) VALUES (?, ?, ?, ?, ?)", [
+		credential.id,
+		credential.userId,
+		credential.name,
+		credential.algorithmId,
+		credential.publicKey
+	]);
 }
 
 export function deletePasskeyCredential(credentialId: Uint8Array): void {
@@ -93,10 +88,9 @@ export function getUserSecurityKeyCredentials(userId: number): WebAuthnUserCrede
 }
 
 export function getSecurityKeyCredential(credentialId: Uint8Array): WebAuthnUserCredential | null {
-	const row = db.queryOne(
-		"SELECT id, user_id, name, algorithm, public_key FROM security_key_credential WHERE id = ?",
-		[credentialId]
-	);
+	const row = db.queryOne("SELECT id, user_id, name, algorithm, public_key FROM security_key_credential WHERE id = ?", [
+		credentialId
+	]);
 	if (row === null) {
 		return null;
 	}
@@ -111,16 +105,13 @@ export function getSecurityKeyCredential(credentialId: Uint8Array): WebAuthnUser
 }
 
 export function createSecurityKeyCredential(credential: WebAuthnUserCredential): void {
-	db.execute(
-		"INSERT INTO security_key_credential (id, user_id, name, algorithm, public_key) VALUES (?, ?, ?, ?, ?)",
-		[
-			credential.id,
-			credential.userId,
-			credential.name,
-			credential.algorithmId,
-			credential.publicKey
-		]
-	);
+	db.execute("INSERT INTO security_key_credential (id, user_id, name, algorithm, public_key) VALUES (?, ?, ?, ?, ?)", [
+		credential.id,
+		credential.userId,
+		credential.name,
+		credential.algorithmId,
+		credential.publicKey
+	]);
 }
 
 export function deleteSecurityKeyCredential(credentialId: Uint8Array): void {

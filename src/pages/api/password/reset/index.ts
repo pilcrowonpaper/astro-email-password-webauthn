@@ -45,11 +45,7 @@ export async function POST(context: APIContext): Promise<Response> {
 		});
 	}
 	invalidateUserPasswordResetSession(passwordResetSession.userId);
-	await updateUserPasswordWithEmailVerification(
-		passwordResetSession.userId,
-		passwordResetSession.email,
-		password
-	);
+	await updateUserPasswordWithEmailVerification(passwordResetSession.userId, passwordResetSession.email, password);
 
 	const sessionFlags: SessionFlags = {
 		twoFactorVerified: true

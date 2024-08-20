@@ -1,9 +1,5 @@
 ---
-import {
-	getUserEmailVerificationRequest,
-	createEmailVerificationRequest,
-	sendVerificationEmail
-} from "@lib/email";
+import { getUserEmailVerificationRequest, createEmailVerificationRequest, sendVerificationEmail } from "@lib/email";
 
 if (Astro.locals.user === null) {
 	return Astro.redirect("/login");
@@ -13,10 +9,7 @@ if (verificationRequest === null && Astro.locals.user.emailVerified) {
 	return Astro.redirect("/");
 }
 if (verificationRequest === null) {
-	verificationRequest = createEmailVerificationRequest(
-		Astro.locals.user.id,
-		Astro.locals.user.email
-	);
+	verificationRequest = createEmailVerificationRequest(Astro.locals.user.id, Astro.locals.user.email);
 	sendVerificationEmail(verificationRequest.email, verificationRequest.code);
 }
 ---
