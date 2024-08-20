@@ -1,0 +1,84 @@
+---
+import { get2FARedirect } from "@lib/2fa";
+
+if (Astro.locals.user === null || Astro.locals.session === null) {
+	return Astro.redirect("/login");
+}
+if (!Astro.locals.user.emailVerified) {
+	return Astro.redirect("/verify-email");
+}
+if (!Astro.locals.user.registered2FA) {
+	return Astro.redirect("/");
+}
+if (Astro.locals.session.twoFactorVerified) {
+	return Astro.redirect("/");
+}
+if (!Astro.locals.user.registeredPasskey) {
+	return Astro.redirect(get2FARedirect(Astro.locals.user));
+}
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="generator" content={Astro.generator} />
+		<title>Authenticate with passkeys</title>
+	</head>
+	<body>
+		<main>
+			<h1>Authenticate with passkey</h1>
+			<div>
+				<button id="button-authenticate">Authenticate</button>
+				<p id="message-authenticate"></p>
+			</div>
+			<a href="/recover-account">Use recovery code</a>
+			{Astro.locals.user.registeredTOTP && <a href="/2fa/totp">Use autheticator apps</a>}
+			{Astro.locals.user.registeredSecurityKey && <a href="/2fa/security-key">Use security keys</a>}
+		</main>
+	</body>
+</html>
+
+<script>
+	import { createChallenge } from "@client/webauthn";
+	import { encodeBase64 } from "@oslojs/encoding";
+
+	const button = document.getElementById("button-authenticate") as HTMLElement;
+	const errorElement = document.getElementById("message-authenticate") as HTMLElement;
+
+	button.addEventListener("click", async () => {
+		const challenge = await createChallenge();
+
+		const credential = await navigator.credentials.get({
+			publicKey: {
+				challenge,
+				userVerification: "required"
+			}
+		});
+
+		if (!(credential instanceof PublicKeyCredential)) {
+			throw new Error("Failed to create public key");
+		}
+		if (!(credential.response instanceof AuthenticatorAssertionResponse)) {
+			throw new Error("Unexpected error");
+		}
+
+		const response = await fetch("/api/passkey/authenticate", {
+			method: "POST",
+			// this example uses JSON but you can use something like CBOR to get something more compact
+			body: JSON.stringify({
+				credential_id: encodeBase64(new Uint8Array(credential.rawId)),
+				signature: encodeBase64(new Uint8Array(credential.response.signature)),
+				authenticator_data: encodeBase64(new Uint8Array(credential.response.authenticatorData)),
+				client_data_json: encodeBase64(new Uint8Array(credential.response.clientDataJSON))
+			})
+		});
+
+		if (response.ok) {
+			window.location.href = "/";
+		} else {
+			errorElement.innerText = await response.text();
+		}
+	});
+</script>

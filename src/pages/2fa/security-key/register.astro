@@ -1,0 +1,144 @@
+---
+import { get2FARedirect } from "@lib/2fa";
+import { getUserSecurityKeyCredentials } from "@lib/webauthn";
+import { bigEndian } from "@oslojs/binary";
+import { encodeBase64 } from "@oslojs/encoding";
+
+if (Astro.locals.user === null || Astro.locals.session === null) {
+	return Astro.redirect("/login");
+}
+if (!Astro.locals.user.emailVerified) {
+	return Astro.redirect("/verify-email");
+}
+if (Astro.locals.user.registered2FA && !Astro.locals.session.twoFactorVerified) {
+	return Astro.redirect(get2FARedirect(Astro.locals.user));
+}
+
+const credentials = getUserSecurityKeyCredentials(Astro.locals.user.id);
+const encodedCredentialIds = credentials.map((c) => encodeBase64(c.id)).join(",");
+
+const credentialUserId = new Uint8Array(8);
+bigEndian.putUint64(credentialUserId, BigInt(Astro.locals.user.id), 0);
+const encodedCredentialUserId = encodeBase64(credentialUserId);
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="generator" content={Astro.generator} />
+		<title>Register security key</title>
+	</head>
+	<body>
+		<main>
+			<h1>Register security key</h1>
+			<button id="button-create-credential">Create credential</button>
+			<form id="form-register-credential">
+				<label>Credential name</label>
+				<input id="name" name="name" />
+				<button disabled id="form-register-credential.button">Continue</button>
+			</form>
+			<input type="hidden" id="credential-display-name" value={Astro.locals.user.username} />
+			<input type="hidden" id="credential-name" value={Astro.locals.user.email} />
+			<input type="hidden" id="credential_user_id" value={encodedCredentialUserId} />
+		</main>
+	</body>
+	<input type="hidden" id="credential_ids" value={encodedCredentialIds} />
+</html>
+
+<script>
+	import { createChallenge } from "@client/webauthn";
+	import { decodeBase64, encodeBase64 } from "@oslojs/encoding";
+
+	const createCredentialButton = document.getElementById("button-create-credential")!;
+	const form = document.getElementById("form-register-credential") as HTMLFormElement;
+	const submitButton = document.getElementById(
+		"form-register-credential.button"
+	) as HTMLButtonElement;
+	const credentialDisplayNameInput = document.getElementById(
+		"credential-display-name"
+	) as HTMLInputElement;
+	const credentialNameInput = document.getElementById("credential-name") as HTMLInputElement;
+	const credentialUserIdInput = document.getElementById("credential_user_id") as HTMLInputElement;
+	const credentialIdsInput = document.getElementById("credential_ids") as HTMLInputElement;
+
+	let encodedAttestationObject: string | null = null;
+	let encodedClientDataJSON: string | null = null;
+
+	createCredentialButton.addEventListener("click", async () => {
+		const challenge = await createChallenge();
+		const userId = decodeBase64(credentialUserIdInput.value);
+		const credentialIds = credentialIdsInput.value.split(",").map((i) => decodeBase64(i));
+
+		const credential = await navigator.credentials.create({
+			publicKey: {
+				challenge,
+				user: {
+					displayName: credentialDisplayNameInput.value,
+					id: userId,
+					name: credentialNameInput.value
+				},
+				rp: {
+					name: "My site"
+				},
+				pubKeyCredParams: [
+					{
+						alg: -7,
+						type: "public-key"
+					},
+					{
+						alg: -257,
+						type: "public-key"
+					}
+				],
+				attestation: "none",
+				authenticatorSelection: {
+					userVerification: "discouraged",
+					authenticatorAttachment: "cross-platform",
+					residentKey: "discouraged"
+				},
+				excludeCredentials: credentialIds.map((id) => {
+					return {
+						id,
+						type: "public-key"
+					};
+				})
+			}
+		});
+
+		if (!(credential instanceof PublicKeyCredential)) {
+			throw new Error("Failed to create public key");
+		}
+		if (!(credential.response instanceof AuthenticatorAttestationResponse)) {
+			throw new Error("Unexpected error");
+		}
+
+		encodedAttestationObject = encodeBase64(new Uint8Array(credential.response.attestationObject));
+
+		encodedClientDataJSON = encodeBase64(new Uint8Array(credential.response.clientDataJSON));
+
+		submitButton.disabled = false;
+	});
+
+	form.addEventListener("submit", async (e) => {
+		e.preventDefault();
+		if (encodedAttestationObject === null || encodedClientDataJSON === null) {
+			throw new Error();
+		}
+		const formData = new FormData(e.target as HTMLFormElement);
+		const name = formData.get("name");
+		const response = await fetch("/api/security-key/register", {
+			method: "POST",
+			body: JSON.stringify({
+				name: name,
+				attestation_object: encodedAttestationObject,
+				client_data_json: encodedClientDataJSON
+			})
+		});
+		if (response.ok) {
+			window.location.href = "/";
+		} else {
+		}
+	});
+</script>

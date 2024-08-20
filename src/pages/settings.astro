@@ -1,0 +1,240 @@
+---
+import { getUserRecoverCode } from "@lib/user";
+import { getUserPasskeyCredentials, getUserSecurityKeyCredentials } from "@lib/webauthn";
+import { get2FARedirect } from "@lib/2fa";
+import { encodeBase64, encodeHexLowerCase } from "@oslojs/encoding";
+
+if (Astro.locals.user === null || Astro.locals.session === null) {
+	return Astro.redirect("/login");
+}
+if (Astro.locals.user.registered2FA && !Astro.locals.session.twoFactorVerified) {
+	return Astro.redirect(get2FARedirect(Astro.locals.user));
+}
+const passkeyCredentials = getUserPasskeyCredentials(Astro.locals.user.id);
+const securityKeyCredentials = getUserSecurityKeyCredentials(Astro.locals.user.id);
+const recoveryCode = getUserRecoverCode(Astro.locals.user.id);
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="generator" content={Astro.generator} />
+		<title>Astro</title>
+	</head>
+	<body>
+		<header>
+			<a href="/">Home</a>
+			<a href="/settings">Settings</a>
+		</header>
+		<main>
+			<h1>Settings</h1>
+			<section>
+				<h2>Update email</h2>
+				<p>Your email: {Astro.locals.user.email}</p>
+				<form id="form-email">
+					<label for="form-email.email">New email</label>
+					<input type="email" id="form-email.email" name="email" required /><br />
+					<button>Update</button>
+					<p id="form-email.message"></p>
+				</form>
+			</section>
+			<section>
+				<h2>Update password</h2>
+				<form id="form-password">
+					<label for="form-password.password">Current password</label>
+					<input
+						type="password"
+						id="form-email.password"
+						name="password"
+						autocomplete="current-password"
+						required
+					/><br />
+					<label for="form-password.new-password">New password</label>
+					<input
+						type="password"
+						id="form-password.new-password"
+						name="new-password"
+						autocomplete="new-password"
+						required
+					/><br />
+					<button>Update</button>
+					<p id="form-password.message"></p>
+				</form>
+			</section>
+
+			<section>
+				<h2>Authenticator app</h2>
+				{
+					Astro.locals.user.registeredTOTP ? (
+						<a href="/2fa/totp/setup">Update TOTP</a>
+					) : (
+						<a href="/2fa/totp/setup">Set up TOTP</a>
+					)
+				}
+			</section>
+			<section>
+				<h2>Passkeys</h2>
+				<p>Passkeys are WebAuthn credentials that validate your identity using your device.</p>
+				<ul>
+					{
+						passkeyCredentials.map((credential) => {
+							return (
+								<li id={`item-passkey-${encodeHexLowerCase(credential.id)}`}>
+									<p>{credential.name}</p>
+									<button
+										data-credential-id={encodeBase64(credential.id)}
+										class="button-delete-passkey"
+									>
+										Delete
+									</button>
+								</li>
+							);
+						})
+					}
+				</ul>
+				<a href="/passkey/register">Add</a>
+			</section>
+			<section>
+				<h2>Security keys</h2>
+				<p>
+					Security keys are WebAuthn credentials that can only be used for two-factor
+					authentication.
+				</p>
+				<ul>
+					{
+						securityKeyCredentials.map((credential) => {
+							return (
+								<li id={`item-security-key-${encodeHexLowerCase(credential.id)}`}>
+									<p>{credential.name}</p>
+									<button
+										data-credential-id={encodeBase64(credential.id)}
+										class="button-delete-security-key"
+									>
+										Delete
+									</button>
+								</li>
+							);
+						})
+					}
+				</ul>
+				<a href="/2fa/security-key/register">Add</a>
+			</section>
+
+			{
+				recoveryCode !== null && (
+					<section>
+						<h1>Recovery code</h1>
+						<p id="recovery-code">Your recovery code is: {recoveryCode}</p>
+						<button id="button-generate-recovery-code">Generate new code</button>
+					</section>
+				)
+			}
+			<section></section>
+		</main>
+	</body>
+</html>
+
+<script>
+	import { decodeBase64, encodeBase64urlNoPadding, encodeHexLowerCase } from "@oslojs/encoding";
+
+	const emailFormElement = document.getElementById("form-email") as HTMLFormElement;
+	const emailFormError = document.getElementById("form-email.message") as HTMLElement;
+
+	emailFormElement.addEventListener("submit", async (e) => {
+		e.preventDefault();
+		const formData = new FormData(e.target as HTMLFormElement);
+		const data = {
+			email: formData.get("email")
+		};
+		const response = await fetch("/api/email-verification/send", {
+			method: "POST",
+			body: JSON.stringify(data)
+		});
+		if (response.ok) {
+			window.location.href = "/verify-email";
+		} else {
+			emailFormError.innerText = await response.text();
+		}
+	});
+
+	const passwordFormElement = document.getElementById("form-password")!;
+	const passwordFormError = document.getElementById("form-password.message")!;
+
+	passwordFormElement.addEventListener("submit", async (e) => {
+		e.preventDefault();
+		const formData = new FormData(e.target as HTMLFormElement);
+		const data = {
+			password: formData.get("password"),
+			new_password: formData.get("new-password")
+		};
+		const response = await fetch("/api/password", {
+			method: "POST",
+			body: JSON.stringify(data)
+		});
+		if (response.ok) {
+			passwordFormError.innerText = "Your password was updated.";
+		} else {
+			passwordFormError.innerText = await response.text();
+		}
+	});
+
+	const generateRecoveryCodeButton = document.getElementById("button-generate-recovery-code")!;
+	const recoveryCodeElement = document.getElementById("recovery-code")!;
+	generateRecoveryCodeButton.addEventListener("click", async () => {
+		const response = await fetch("/api/recover-account/code", {
+			method: "POST"
+		});
+		if (response.ok) {
+			const recoveryCode = await response.text();
+			recoveryCodeElement.innerText = `Your recovery code is: ${recoveryCode}`;
+		}
+	});
+
+	const passkeyDeleteButtons = document.getElementsByClassName(
+		"button-delete-passkey"
+	) as HTMLCollectionOf<HTMLButtonElement>;
+
+	for (const button of passkeyDeleteButtons) {
+		button.addEventListener("click", async (e) => {
+			const _button = e.target as HTMLButtonElement;
+			const encodedCredentialId =
+				_button.attributes.getNamedItem("data-credential-id")?.value ?? null;
+			if (encodedCredentialId === null) {
+				throw new Error();
+			}
+			const credentialId = decodeBase64(encodedCredentialId);
+			const url = `/api/passkey/credentials/${encodeBase64urlNoPadding(credentialId)}`;
+			const response = await fetch(url, {
+				method: "DELETE"
+			});
+			if (response.ok) {
+				document.getElementById(`item-passkey-${encodeHexLowerCase(credentialId)}`)?.remove();
+			}
+		});
+	}
+
+	const securityKeyDeleteButtons = document.getElementsByClassName(
+		"button-delete-security-key"
+	) as HTMLCollectionOf<HTMLButtonElement>;
+
+	for (const button of securityKeyDeleteButtons) {
+		button.addEventListener("click", async (e) => {
+			const _button = e.target as HTMLButtonElement;
+			const encodedCredentialId =
+				_button.attributes.getNamedItem("data-credential-id")?.value ?? null;
+			if (encodedCredentialId === null) {
+				throw new Error();
+			}
+			const credentialId = decodeBase64(encodedCredentialId);
+			const url = `/api/security-key/credentials/${encodeBase64urlNoPadding(credentialId)}`;
+			const response = await fetch(url, {
+				method: "DELETE"
+			});
+			if (response.ok) {
+				document.getElementById(`item-security-key-${encodeHexLowerCase(credentialId)}`)?.remove();
+			}
+		});
+	}
+</script>
