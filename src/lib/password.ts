@@ -75,7 +75,7 @@ export function validatePasswordResetSessionRequest(context: APIContext): Passwo
 	}
 	const row = db.queryOne(
 		`SELECT password_reset_session.id, password_reset_session.user_id, password_reset_session.email, password_reset_session.code, password_reset_session.expires_at, password_reset_session.email_verified, password_reset_session.two_factor_verified
-user.id, user.email, user.username, user.email_verified, user.created_at, IIF(totp_credential.id IS NOT NULL, 1, 0), IIF(passkey_credential.id IS NOT NULL, 1, 0), IIF(security_key_credential.id IS NOT NULL, 1, 0) FROM password_reset_session
+user.id, user.email, user.username, user.email_verified, IIF(totp_credential.id IS NOT NULL, 1, 0), IIF(passkey_credential.id IS NOT NULL, 1, 0), IIF(security_key_credential.id IS NOT NULL, 1, 0) FROM password_reset_session
 INNER JOIN user ON password_reset_session.user_id = user.id
 LEFT JOIN totp_credential ON user.id = totp_credential.user_id
 LEFT JOIN passkey_credential ON user.id = passkey_credential.user_id
@@ -105,10 +105,9 @@ WHERE id = ?`,
 		email: row.string(8),
 		username: row.string(9),
 		emailVerified: Boolean(row.number(10)),
-		createdAt: new Date(row.number(11) * 1000),
-		registeredTOTP: Boolean(row.number(12)),
-		registeredPasskey: Boolean(row.number(13)),
-		registeredSecurityKey: Boolean(row.number(14)),
+		registeredTOTP: Boolean(row.number(11)),
+		registeredPasskey: Boolean(row.number(12)),
+		registeredSecurityKey: Boolean(row.number(13)),
 		registered2FA: false
 	};
 	if (user.registeredPasskey || user.registeredSecurityKey || user.registeredTOTP) {

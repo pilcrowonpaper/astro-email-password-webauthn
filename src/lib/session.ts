@@ -7,7 +7,7 @@ import type { APIContext } from "astro";
 export function validateSession(sessionId: string): SessionValidationResult {
 	const row = db.queryOne(
 		`
-SELECT session.id, session.user_id, session.expires_at, session.two_factor_verified, user.id, user.email, user.username, user.email_verified, user.created_at, IIF(totp_credential.id IS NOT NULL, 1, 0), IIF(passkey_credential.id IS NOT NULL, 1, 0), IIF(security_key_credential.id IS NOT NULL, 1, 0) FROM session
+SELECT session.id, session.user_id, session.expires_at, session.two_factor_verified, user.id, user.email, user.username, user.email_verified, IIF(totp_credential.id IS NOT NULL, 1, 0), IIF(passkey_credential.id IS NOT NULL, 1, 0), IIF(security_key_credential.id IS NOT NULL, 1, 0) FROM session
 INNER JOIN user ON session.user_id = user.id
 LEFT JOIN totp_credential ON session.user_id = totp_credential.user_id
 LEFT JOIN passkey_credential ON user.id = passkey_credential.user_id
@@ -31,10 +31,9 @@ WHERE session.id = ?
 		email: row.string(5),
 		username: row.string(6),
 		emailVerified: Boolean(row.number(7)),
-		createdAt: new Date(row.number(8) * 1000),
-		registeredTOTP: Boolean(row.number(9)),
-		registeredPasskey: Boolean(row.number(10)),
-		registeredSecurityKey: Boolean(row.number(11)),
+		registeredTOTP: Boolean(row.number(8)),
+		registeredPasskey: Boolean(row.number(9)),
+		registeredSecurityKey: Boolean(row.number(10)),
 		registered2FA: false
 	};
 	if (user.registeredPasskey || user.registeredSecurityKey || user.registeredTOTP) {
