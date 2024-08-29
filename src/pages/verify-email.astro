@@ -1,16 +1,27 @@
 ---
-import { getUserEmailVerificationRequest, createEmailVerificationRequest, sendVerificationEmail } from "@lib/email";
+import {
+	getUserEmailVerificationRequestFromRequest,
+	createEmailVerificationRequest,
+	sendVerificationEmail,
+	setEmailVerificationRequestCookie
+} from "@lib/server/email-verification";
+import { get2FARedirect } from "@lib/server/2fa";
 
-if (Astro.locals.user === null) {
+if (Astro.locals.session === null || Astro.locals.user === null) {
 	return Astro.redirect("/login");
 }
-let verificationRequest = getUserEmailVerificationRequest(Astro.locals.user.id);
-if (verificationRequest === null && Astro.locals.user.emailVerified) {
-	return Astro.redirect("/");
+if (Astro.locals.user.registered2FA && !Astro.locals.session.twoFactorVerified) {
+	return Astro.redirect(get2FARedirect(Astro.locals.user));
 }
-if (verificationRequest === null) {
+
+let verificationRequest = getUserEmailVerificationRequestFromRequest(Astro);
+if (verificationRequest === null || Date.now() >= verificationRequest.expiresAt.getTime()) {
+	if (Astro.locals.user.emailVerified) {
+		return Astro.redirect("/");
+	}
 	verificationRequest = createEmailVerificationRequest(Astro.locals.user.id, Astro.locals.user.email);
 	sendVerificationEmail(verificationRequest.email, verificationRequest.code);
+	setEmailVerificationRequestCookie(Astro, verificationRequest);
 }
 ---
 
@@ -40,10 +51,10 @@ if (verificationRequest === null) {
 </html>
 
 <script>
-	const formElement = document.getElementById("form-verify")!;
-	const formErrorElement = document.getElementById("form-verify.message")!;
-	const resendButtonElement = document.getElementById("button-resend")!;
-	const resendMessageElement = document.getElementById("resend-message")!;
+	const formElement = document.getElementById("form-verify") as HTMLFormElement;
+	const formErrorElement = document.getElementById("form-verify.message") as HTMLElement;
+	const resendButton = document.getElementById("button-resend") as HTMLButtonElement;
+	const resendMessageElement = document.getElementById("resend-message") as HTMLElement;
 
 	formElement.addEventListener("submit", async (e) => {
 		e.preventDefault();
@@ -62,8 +73,8 @@ if (verificationRequest === null) {
 		}
 	});
 
-	resendButtonElement.addEventListener("click", async () => {
-		const response = await fetch("/api/email-verification/resend", {
+	resendButton.addEventListener("click", async () => {
+		const response = await fetch("/api/email-verification/resend-code", {
 			method: "POST"
 		});
 		if (response.ok) {

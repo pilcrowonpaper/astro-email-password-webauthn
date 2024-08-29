@@ -1,4 +1,4 @@
-import { createWebAuthnChallenge, webauthnChallengeRateLimitBucket } from "@lib/webauthn";
+import { createWebAuthnChallenge, webauthnChallengeRateLimitBucket } from "@lib/server/webauthn";
 import { encodeBase64 } from "@oslojs/encoding";
 
 import type { APIContext } from "astro";

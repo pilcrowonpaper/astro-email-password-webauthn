@@ -1,6 +1,6 @@
 ---
-import { get2FARedirect } from "@lib/2fa";
-import { getUserSecurityKeyCredentials } from "@lib/webauthn";
+import { get2FARedirect } from "@lib/server/2fa";
+import { getUserSecurityKeyCredentials } from "@lib/server/webauthn";
 import { encodeBase64 } from "@oslojs/encoding";
 
 if (Astro.locals.user === null || Astro.locals.session === null) {
@@ -34,8 +34,11 @@ const encodedCredentialUserId = credentials.map((c) => encodeBase64(c.id)).join(
 	<body>
 		<main>
 			<h1>Authenticate with security keys</h1>
-			<button id="button-authenticate">Authenticate</button>
-			<a href="/recover-account">Use recovery code</a>
+			<div>
+				<button id="button-authenticate">Authenticate</button>
+				<p id="message"></p>
+			</div>
+			<a href="/2fa/reset">Use recovery code</a>
 			{Astro.locals.user.registeredTOTP && <a href="/2fa/totp">Use autheticator apps</a>}
 			{Astro.locals.user.registeredPasskey && <a href="/2fa/passkey">Use passkeys</a>}
 		</main>
@@ -44,11 +47,12 @@ const encodedCredentialUserId = credentials.map((c) => encodeBase64(c.id)).join(
 </html>
 
 <script>
-	import { createChallenge } from "@client/webauthn";
+	import { createChallenge } from "@lib/client/webauthn";
 	import { encodeBase64, decodeBase64 } from "@oslojs/encoding";
 
 	const credentialIdsInput = document.getElementById("credential_ids") as HTMLInputElement;
 	const button = document.getElementById("button-authenticate") as HTMLButtonElement;
+	const messageElement = document.getElementById("message") as HTMLElement;
 
 	button.addEventListener("click", async () => {
 		const credentialIds = credentialIdsInput.value.split(",").map((i) => decodeBase64(i));
@@ -74,7 +78,7 @@ const encodedCredentialUserId = credentials.map((c) => encodeBase64(c.id)).join(
 			throw new Error("Unexpected error");
 		}
 
-		const response = await fetch("/api/security-key/authenticate", {
+		const response = await fetch("/api/user/security-key/verify", {
 			method: "POST",
 			// this example uses JSON but you can use something like CBOR to get something more compact
 			body: JSON.stringify({
@@ -88,6 +92,7 @@ const encodedCredentialUserId = credentials.map((c) => encodeBase64(c.id)).join(
 		if (response.ok) {
 			window.location.href = "/";
 		} else {
+			messageElement.innerText = await response.text();
 		}
 	});
 </script>

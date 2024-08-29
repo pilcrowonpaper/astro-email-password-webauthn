@@ -1,8 +1,8 @@
-# Email and password example with 2FA and passkeys
+# Email and password example with 2FA and WebAuthn
 
 Built with Astro and SQLite.
 
-- Password check with HaveIBeenPwned
+- Password checks with HaveIBeenPwned
 - Sign in with passkeys
 - Email verification
 - 2FA with TOTP
@@ -27,6 +27,12 @@ Run the application:
 pnpm dev
 ```
 
-## User enumeration
+## Notes
 
-I do not consider user enumeration to be a real vulnerability so please don't open issues on it. If you really need to prevent it, just don't use emails.
+- I do not consider user enumeration to be a real vulnerability so please don't open issues on it. If you really need to prevent it, just don't use emails.
+- This example does not handle unexpected errors gracefully.
+- There are some major code duplications (specifically for 2FA) to keep the codebase simple.
+- Astro warns about unused functions (`get2FARedirect()`) but this is a bug with the language server.
+- TODO: You may need to rewrite some queries and use transactions to avoid race conditions when using MySQL, Postgres, etc.
+- TODO: Users are not shown their recovery code when they first register their second factor.
+- TODO: Users can delete all their second factors (not an issue security wise).

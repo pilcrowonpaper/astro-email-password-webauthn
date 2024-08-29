@@ -4,8 +4,7 @@
 	"compilerOptions": {
 		"baseUrl": ".",
 		"paths": {
-			"@lib/*": ["src/lib/*"],
-			"@client/*": ["src/client/*"]
+			"@lib/*": ["src/lib/*"]
 		}
 	}
 }

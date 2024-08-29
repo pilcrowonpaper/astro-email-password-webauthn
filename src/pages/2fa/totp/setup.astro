@@ -2,7 +2,7 @@
 import { encodeBase64 } from "@oslojs/encoding";
 import { createTOTPKeyURI } from "@oslojs/otp";
 import { renderSVG } from "uqr";
-import { get2FARedirect } from "@lib/2fa";
+import { get2FARedirect } from "@lib/server/2fa";
 
 if (Astro.locals.user === null || Astro.locals.session === null) {
 	return Astro.redirect("/login");
@@ -45,8 +45,8 @@ const qrcode = renderSVG(keyURI);
 </html>
 
 <script>
-	const formElement = document.getElementById("form-totp")!;
-	const formErrorElement = document.getElementById("form-totp.message")!;
+	const formElement = document.getElementById("form-totp") as HTMLFormElement;
+	const formErrorElement = document.getElementById("form-totp.message") as HTMLElement;
 
 	formElement.addEventListener("submit", async (e) => {
 		e.preventDefault();
@@ -55,12 +55,12 @@ const qrcode = renderSVG(keyURI);
 			key: formData.get("key"),
 			code: formData.get("code")
 		};
-		const response = await fetch("/api/totp/setup", {
+		const response = await fetch("/api/user/totp", {
 			method: "POST",
 			body: JSON.stringify(data)
 		});
 		if (response.ok) {
-			window.location.href = "/recovery-code";
+			window.location.href = "/";
 		} else {
 			formErrorElement.innerText = await response.text();
 		}

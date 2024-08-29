@@ -1,5 +1,5 @@
 ---
-import { get2FARedirect } from "@lib/2fa";
+import { get2FARedirect } from "@lib/server/2fa";
 
 if (Astro.locals.user === null || Astro.locals.session === null) {
 	return Astro.redirect("/login");
@@ -35,7 +35,7 @@ if (!Astro.locals.user.registeredTOTP) {
 				<button>Verify</button>
 				<p id="form-totp.message"></p>
 			</form>
-			<a href="/recover-account">Use recovery code</a>
+			<a href="/2fa/reset">Use recovery code</a>
 			{Astro.locals.user.registeredPasskey && <a href="/2fa/passkeys">Use passkeys</a>}
 			{Astro.locals.user.registeredSecurityKey && <a href="/2fa/security-key">Use security keys</a>}
 		</main>
@@ -43,8 +43,8 @@ if (!Astro.locals.user.registeredTOTP) {
 </html>
 
 <script>
-	const formElement = document.getElementById("form-totp")!;
-	const formErrorElement = document.getElementById("form-totp.message")!;
+	const formElement = document.getElementById("form-totp") as HTMLFormElement;
+	const formErrorElement = document.getElementById("form-totp.message") as HTMLElement;
 
 	formElement.addEventListener("submit", async (e) => {
 		e.preventDefault();
@@ -52,7 +52,7 @@ if (!Astro.locals.user.registeredTOTP) {
 		const data = {
 			code: formData.get("code")
 		};
-		const response = await fetch("/api/totp/verify", {
+		const response = await fetch("/api/user/totp/verify", {
 			method: "POST",
 			body: JSON.stringify(data)
 		});

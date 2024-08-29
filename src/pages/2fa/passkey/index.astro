@@ -1,0 +1,97 @@
+---
+import { get2FARedirect } from "@lib/server/2fa";
+import { getUserPasskeyCredentials } from "@lib/server/webauthn";
+import { encodeBase64 } from "@oslojs/encoding";
+
+if (Astro.locals.user === null || Astro.locals.session === null) {
+	return Astro.redirect("/login");
+}
+if (!Astro.locals.user.emailVerified) {
+	return Astro.redirect("/verify-email");
+}
+if (!Astro.locals.user.registered2FA) {
+	return Astro.redirect("/");
+}
+if (Astro.locals.session.twoFactorVerified) {
+	return Astro.redirect("/");
+}
+if (!Astro.locals.user.registeredSecurityKey) {
+	return Astro.redirect(get2FARedirect(Astro.locals.user));
+}
+
+const credentials = getUserPasskeyCredentials(Astro.locals.user.id);
+const encodedCredentialUserId = credentials.map((c) => encodeBase64(c.id)).join(",");
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="generator" content={Astro.generator} />
+		<title>Authenticate with passkeys</title>
+	</head>
+	<body>
+		<main>
+			<h1>Authenticate with passkeys</h1>
+			<div>
+				<button id="button-authenticate">Authenticate</button>
+				<p id="message"></p>
+			</div>
+			<a href="/2fa/reset">Use recovery code</a>
+			{Astro.locals.user.registeredTOTP && <a href="/2fa/totp">Use autheticator apps</a>}
+			{Astro.locals.user.registeredPasskey && <a href="/2fa/passkey">Use security keys</a>}
+		</main>
+	</body>
+	<input type="hidden" id="credential_ids" value={encodedCredentialUserId} />
+</html>
+
+<script>
+	import { createChallenge } from "@lib/client/webauthn";
+	import { encodeBase64, decodeBase64 } from "@oslojs/encoding";
+
+	const credentialIdsInput = document.getElementById("credential_ids") as HTMLInputElement;
+	const buttonElement = document.getElementById("button-authenticate") as HTMLButtonElement;
+	const messageElement = document.getElementById("message") as HTMLElement;
+
+	buttonElement.addEventListener("click", async () => {
+		const credentialIds = credentialIdsInput.value.split(",").map((i) => decodeBase64(i));
+		const challenge = await createChallenge();
+
+		const credential = await navigator.credentials.get({
+			publicKey: {
+				challenge,
+				userVerification: "discouraged",
+				allowCredentials: credentialIds.map((id) => {
+					return {
+						id,
+						type: "public-key"
+					};
+				})
+			}
+		});
+
+		if (!(credential instanceof PublicKeyCredential)) {
+			throw new Error("Failed to create public key");
+		}
+		if (!(credential.response instanceof AuthenticatorAssertionResponse)) {
+			throw new Error("Unexpected error");
+		}
+
+		const response = await fetch("/api/user/passkey/verify", {
+			method: "POST",
+			body: JSON.stringify({
+				credential_id: encodeBase64(new Uint8Array(credential.rawId)),
+				signature: encodeBase64(new Uint8Array(credential.response.signature)),
+				authenticator_data: encodeBase64(new Uint8Array(credential.response.authenticatorData)),
+				client_data_json: encodeBase64(new Uint8Array(credential.response.clientDataJSON))
+			})
+		});
+
+		if (response.ok) {
+			window.location.href = "/";
+		} else {
+			messageElement.innerText = await response.text();
+		}
+	});
+</script>

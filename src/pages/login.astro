@@ -1,5 +1,5 @@
 ---
-import { get2FARedirect } from "@lib/2fa";
+import { get2FARedirect } from "@lib/server/2fa";
 
 if (Astro.locals.session !== null && Astro.locals.user !== null) {
 	if (!Astro.locals.user.emailVerified) {
@@ -43,11 +43,11 @@ if (Astro.locals.session !== null && Astro.locals.user !== null) {
 </html>
 
 <script>
-	import { createChallenge } from "@client/webauthn";
+	import { createChallenge } from "@lib/client/webauthn";
 	import { encodeBase64 } from "@oslojs/encoding";
 
-	const formElement = document.getElementById("form-login")!;
-	const formErrorElement = document.getElementById("form-login.message")!;
+	const formElement = document.getElementById("form-login") as HTMLFormElement;
+	const formErrorElement = document.getElementById("form-login.message") as HTMLElement;
 
 	formElement.addEventListener("submit", async (e) => {
 		e.preventDefault();
@@ -67,8 +67,8 @@ if (Astro.locals.session !== null && Astro.locals.user !== null) {
 		}
 	});
 
-	const passkeyButton = document.getElementById("button-passkey")!;
-	const passkeyErrorElement = document.getElementById("message-passkey")!;
+	const passkeyButton = document.getElementById("button-passkey") as HTMLButtonElement;
+	const passkeyErrorElement = document.getElementById("message-passkey") as HTMLElement;
 
 	passkeyButton.addEventListener("click", async () => {
 		const challenge = await createChallenge();
@@ -87,7 +87,7 @@ if (Astro.locals.session !== null && Astro.locals.user !== null) {
 			throw new Error("Unexpected error");
 		}
 
-		const response = await fetch("/api/passkey/authenticate", {
+		const response = await fetch("/api/login-passkey", {
 			method: "POST",
 			// this example uses JSON but you can use something like CBOR to get something more compact
 			body: JSON.stringify({

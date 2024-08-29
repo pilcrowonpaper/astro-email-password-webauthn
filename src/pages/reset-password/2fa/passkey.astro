@@ -1,6 +1,6 @@
 ---
-import { getPasswordReset2FARedirect } from "@lib/2fa";
-import { validatePasswordResetSessionRequest } from "@lib/password";
+import { getPasswordReset2FARedirect } from "@lib/server/2fa";
+import { validatePasswordResetSessionRequest } from "@lib/server/password-reset";
 
 const { session, user } = validatePasswordResetSessionRequest(Astro);
 
@@ -36,7 +36,7 @@ if (session.twoFactorVerified) {
 				<button id="button-authenticate">Authenticate</button>
 				<p id="message-authenticate"></p>
 			</div>
-			<a href="/recover-account">Use recovery code</a>
+			<a href="/reset-password/2fa/recovery-code">Use recovery code</a>
 			{user.registeredTOTP && <a href="/reset-password/2fa/totp">Use autheticator apps</a>}
 			{user.registeredSecurityKey && <a href="/reset-password/2fa/security-key">Use security keys</a>}
 		</main>
@@ -44,7 +44,7 @@ if (session.twoFactorVerified) {
 </html>
 
 <script>
-	import { createChallenge } from "@client/webauthn";
+	import { createChallenge } from "@lib/client/webauthn";
 	import { encodeBase64 } from "@oslojs/encoding";
 
 	const button = document.getElementById("button-authenticate") as HTMLElement;
@@ -67,7 +67,7 @@ if (session.twoFactorVerified) {
 			throw new Error("Unexpected error");
 		}
 
-		const response = await fetch("/api/password/reset/passkey", {
+		const response = await fetch("/api/password-reset/verify-2fa/passkey", {
 			method: "POST",
 			// this example uses JSON but you can use something like CBOR to get something more compact
 			body: JSON.stringify({

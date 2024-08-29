@@ -1,17 +1,13 @@
 ---
-import { validatePasswordResetSessionRequest } from "@lib/password";
-import { getPasswordReset2FARedirect } from "@lib/2fa";
+import { validatePasswordResetSessionRequest } from "@lib/server/password-reset";
 
-const { session, user } = validatePasswordResetSessionRequest(Astro);
+const { session } = validatePasswordResetSessionRequest(Astro);
 if (session === null) {
 	return Astro.redirect("/forgot-password");
 }
 if (session.emailVerified) {
-	if (user === null) {
-		return Astro.redirect("/forgot-password");
-	}
-	if (user.registered2FA && !session.twoFactorVerified) {
-		return Astro.redirect(getPasswordReset2FARedirect(getPasswordReset2FARedirect));
+	if (!session.twoFactorVerified) {
+		return Astro.redirect("/reset-password/2fa");
 	}
 	return Astro.redirect("/reset-password");
 }
@@ -36,8 +32,8 @@ if (session.emailVerified) {
 </html>
 
 <script>
-	const formElement = document.getElementById("form-verify")!;
-	const formErrorElement = document.getElementById("form-verify.message")!;
+	const formElement = document.getElementById("form-verify") as HTMLFormElement;
+	const formErrorElement = document.getElementById("form-verify.message") as HTMLElement;
 
 	formElement.addEventListener("submit", async (e) => {
 		e.preventDefault();
@@ -45,7 +41,7 @@ if (session.emailVerified) {
 		const data = {
 			code: formData.get("code")
 		};
-		const response = await fetch("/api/password/reset/verify-email", {
+		const response = await fetch("/api/password-reset/verify-email", {
 			method: "POST",
 			body: JSON.stringify(data)
 		});

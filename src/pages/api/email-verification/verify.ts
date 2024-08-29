@@ -1,20 +1,33 @@
-import type { APIContext } from "astro";
 import {
 	createEmailVerificationRequest,
+	deleteEmailVerificationRequestCookie,
 	deleteUserEmailVerificationRequest,
-	getUserEmailVerificationRequest,
+	getUserEmailVerificationRequestFromRequest,
 	sendVerificationEmail
-} from "@lib/email";
-import { verifyExpirationDate } from "@lib/utils";
+} from "@lib/server/email-verification";
 import { ObjectParser } from "@pilcrowjs/object-parser";
-import { verifyUserEmail } from "@lib/user";
-import { invalidateUserPasswordResetSession } from "@lib/password";
-import { FixedRefillTokenBucket } from "@lib/rate-limit";
+import { updateUserEmailAndSetEmailAsVerified } from "@lib/server/user";
+import { invalidateUserPasswordResetSessions } from "@lib/server/password-reset";
+import { FixedRefillTokenBucket } from "@lib/server/rate-limit";
+
+import type { APIContext } from "astro";
 
 const bucket = new FixedRefillTokenBucket<number>(5, 60 * 30);
 
 export async function POST(context: APIContext): Promise<Response> {
-	if (context.locals.user === null) {
+	if (context.locals.session === null || context.locals.user === null) {
+		return new Response(null, {
+			status: 401
+		});
+	}
+	if (context.locals.user.registered2FA && !context.locals.session.twoFactorVerified) {
+		return new Response(null, {
+			status: 401
+		});
+	}
+
+	let verificationRequest = getUserEmailVerificationRequestFromRequest(context);
+	if (verificationRequest === null) {
 		return new Response(null, {
 			status: 401
 		});
@@ -34,18 +47,12 @@ export async function POST(context: APIContext): Promise<Response> {
 			status: 400
 		});
 	}
-	let verificationRequest = getUserEmailVerificationRequest(context.locals.user.id);
-	if (verificationRequest === null) {
-		return new Response("Invalid request", {
-			status: 400
-		});
-	}
 	if (!bucket.check(context.locals.user.id, 1)) {
 		return new Response("Too many requests", {
 			status: 429
 		});
 	}
-	if (!verifyExpirationDate(verificationRequest.expiresAt)) {
+	if (Date.now() >= verificationRequest.expiresAt.getTime()) {
 		verificationRequest = createEmailVerificationRequest(verificationRequest.userId, verificationRequest.email);
 		sendVerificationEmail(verificationRequest.email, verificationRequest.code);
 		return new Response("The verification code was expired. We sent another code to your inbox.", {
@@ -58,7 +65,8 @@ export async function POST(context: APIContext): Promise<Response> {
 		});
 	}
 	deleteUserEmailVerificationRequest(context.locals.user.id);
-	invalidateUserPasswordResetSession(context.locals.user.id);
-	verifyUserEmail(context.locals.user.id, verificationRequest.email);
+	invalidateUserPasswordResetSessions(context.locals.user.id);
+	updateUserEmailAndSetEmailAsVerified(context.locals.user.id, verificationRequest.email);
+	deleteEmailVerificationRequestCookie(context);
 	return new Response(null, { status: 204 });
 }

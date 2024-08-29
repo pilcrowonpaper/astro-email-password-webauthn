@@ -1,4 +1,5 @@
-import { get2FARedirect } from "@lib/2fa";
+import { get2FARedirect } from "@lib/server/2fa";
+
 import type { APIContext } from "astro";
 
 export function GET(context: APIContext): Response {

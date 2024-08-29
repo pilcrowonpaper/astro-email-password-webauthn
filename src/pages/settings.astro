@@ -1,7 +1,7 @@
 ---
-import { getUserRecoverCode } from "@lib/user";
-import { getUserPasskeyCredentials, getUserSecurityKeyCredentials } from "@lib/webauthn";
-import { get2FARedirect } from "@lib/2fa";
+import { getUserRecoverCode } from "@lib/server/user";
+import { getUserPasskeyCredentials, getUserSecurityKeyCredentials } from "@lib/server/webauthn";
+import { get2FARedirect } from "@lib/server/2fa";
 import { encodeBase64, encodeHexLowerCase } from "@oslojs/encoding";
 
 if (Astro.locals.user === null || Astro.locals.session === null) {
@@ -21,7 +21,7 @@ const recoveryCode = getUserRecoverCode(Astro.locals.user.id);
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="viewport" content="width=device-width" />
 		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
+		<title>Settings</title>
 	</head>
 	<body>
 		<header>
@@ -63,7 +63,13 @@ const recoveryCode = getUserRecoverCode(Astro.locals.user.id);
 				<h2>Authenticator app</h2>
 				{
 					Astro.locals.user.registeredTOTP ? (
-						<a href="/2fa/totp/setup">Update TOTP</a>
+						<>
+							<a href="/2fa/totp/setup">Update TOTP</a>
+							<form id="form-disconnect-totp">
+								<button>Disconnect</button>
+								<p id="form-disconnect-totp.message" />
+							</form>
+						</>
 					) : (
 						<a href="/2fa/totp/setup">Set up TOTP</a>
 					)
@@ -86,7 +92,7 @@ const recoveryCode = getUserRecoverCode(Astro.locals.user.id);
 						})
 					}
 				</ul>
-				<a href="/passkey/register">Add</a>
+				<a href="/2fa/passkey/register">Add</a>
 			</section>
 			<section>
 				<h2>Security keys</h2>
@@ -126,7 +132,7 @@ const recoveryCode = getUserRecoverCode(Astro.locals.user.id);
 	import { decodeBase64, encodeBase64urlNoPadding, encodeHexLowerCase } from "@oslojs/encoding";
 
 	const emailFormElement = document.getElementById("form-email") as HTMLFormElement;
-	const emailFormError = document.getElementById("form-email.message") as HTMLElement;
+	const emailFormErrorElement = document.getElementById("form-email.message") as HTMLElement;
 
 	emailFormElement.addEventListener("submit", async (e) => {
 		e.preventDefault();
@@ -134,19 +140,19 @@ const recoveryCode = getUserRecoverCode(Astro.locals.user.id);
 		const data = {
 			email: formData.get("email")
 		};
-		const response = await fetch("/api/email-verification/send", {
+		const response = await fetch("/api/email-verification", {
 			method: "POST",
 			body: JSON.stringify(data)
 		});
 		if (response.ok) {
 			window.location.href = "/verify-email";
 		} else {
-			emailFormError.innerText = await response.text();
+			emailFormErrorElement.innerText = await response.text();
 		}
 	});
 
-	const passwordFormElement = document.getElementById("form-password")!;
-	const passwordFormError = document.getElementById("form-password.message")!;
+	const passwordFormElement = document.getElementById("form-password") as HTMLFormElement;
+	const passwordFormErrorElement = document.getElementById("form-password.message") as HTMLElement;
 
 	passwordFormElement.addEventListener("submit", async (e) => {
 		e.preventDefault();
@@ -155,21 +161,38 @@ const recoveryCode = getUserRecoverCode(Astro.locals.user.id);
 			password: formData.get("password"),
 			new_password: formData.get("new-password")
 		};
-		const response = await fetch("/api/password", {
-			method: "POST",
+		const response = await fetch("/api/user/password", {
+			method: "PATCH",
 			body: JSON.stringify(data)
 		});
 		if (response.ok) {
-			passwordFormError.innerText = "Your password was updated.";
+			passwordFormErrorElement.innerText = "Your password was updated.";
 		} else {
-			passwordFormError.innerText = await response.text();
+			passwordFormErrorElement.innerText = await response.text();
 		}
 	});
 
-	const generateRecoveryCodeButton = document.getElementById("button-generate-recovery-code")!;
-	const recoveryCodeElement = document.getElementById("recovery-code")!;
-	generateRecoveryCodeButton.addEventListener("click", async () => {
-		const response = await fetch("/api/recover-account/code", {
+	const disconnectTOTPFormElement = document.getElementById("form-disconnect-totp") as HTMLFormElement;
+	const disconnectTOTPFormMessageElement = document.getElementById("form-disconnect-totp.message") as HTMLElement;
+
+	disconnectTOTPFormElement.addEventListener("submit", async (e) => {
+		e.preventDefault();
+		const response = await fetch("/api/user/totp", {
+			method: "DELETE"
+		});
+		if (response.ok) {
+			disconnectTOTPFormMessageElement.innerText = "Success";
+		} else {
+			disconnectTOTPFormMessageElement.innerText = await response.text();
+		}
+	});
+
+	const generateRecoveryCodeButtonElement = document.getElementById(
+		"button-generate-recovery-code"
+	) as HTMLButtonElement;
+	const recoveryCodeElement = document.getElementById("recovery-code") as HTMLElement;
+	generateRecoveryCodeButtonElement.addEventListener("click", async () => {
+		const response = await fetch("/api/user/recover-code/reset", {
 			method: "POST"
 		});
 		if (response.ok) {
@@ -178,11 +201,11 @@ const recoveryCode = getUserRecoverCode(Astro.locals.user.id);
 		}
 	});
 
-	const passkeyDeleteButtons = document.getElementsByClassName(
+	const passkeyDeleteButtonElements = document.getElementsByClassName(
 		"button-delete-passkey"
 	) as HTMLCollectionOf<HTMLButtonElement>;
 
-	for (const button of passkeyDeleteButtons) {
+	for (const button of passkeyDeleteButtonElements) {
 		button.addEventListener("click", async (e) => {
 			const _button = e.target as HTMLButtonElement;
 			const encodedCredentialId = _button.attributes.getNamedItem("data-credential-id")?.value ?? null;
@@ -190,7 +213,7 @@ const recoveryCode = getUserRecoverCode(Astro.locals.user.id);
 				throw new Error();
 			}
 			const credentialId = decodeBase64(encodedCredentialId);
-			const url = `/api/passkey/credentials/${encodeBase64urlNoPadding(credentialId)}`;
+			const url = `/api/user/passkey/credentials/${encodeBase64urlNoPadding(credentialId)}`;
 			const response = await fetch(url, {
 				method: "DELETE"
 			});
@@ -200,11 +223,11 @@ const recoveryCode = getUserRecoverCode(Astro.locals.user.id);
 		});
 	}
 
-	const securityKeyDeleteButtons = document.getElementsByClassName(
+	const securityKeyDeleteButtonElements = document.getElementsByClassName(
 		"button-delete-security-key"
 	) as HTMLCollectionOf<HTMLButtonElement>;
 
-	for (const button of securityKeyDeleteButtons) {
+	for (const button of securityKeyDeleteButtonElements) {
 		button.addEventListener("click", async (e) => {
 			const _button = e.target as HTMLButtonElement;
 			const encodedCredentialId = _button.attributes.getNamedItem("data-credential-id")?.value ?? null;
@@ -212,7 +235,7 @@ const recoveryCode = getUserRecoverCode(Astro.locals.user.id);
 				throw new Error();
 			}
 			const credentialId = decodeBase64(encodedCredentialId);
-			const url = `/api/security-key/credentials/${encodeBase64urlNoPadding(credentialId)}`;
+			const url = `/api/user/security-key/credentials/${encodeBase64urlNoPadding(credentialId)}`;
 			const response = await fetch(url, {
 				method: "DELETE"
 			});

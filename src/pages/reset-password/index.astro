@@ -1,6 +1,5 @@
 ---
-import { getPasswordReset2FARedirect } from "@lib/2fa";
-import { validatePasswordResetSessionRequest } from "@lib/password";
+import { validatePasswordResetSessionRequest } from "@lib/server/password-reset";
 
 const { session, user } = validatePasswordResetSessionRequest(Astro);
 if (session === null) {
@@ -10,7 +9,7 @@ if (!session.emailVerified) {
 	return Astro.redirect("/reset-password/verify-email");
 }
 if (user.registered2FA && !session.twoFactorVerified) {
-	return Astro.redirect(getPasswordReset2FARedirect(getPasswordReset2FARedirect));
+	return Astro.redirect("/reset-password/2fa");
 }
 ---
 
@@ -33,8 +32,8 @@ if (user.registered2FA && !session.twoFactorVerified) {
 </html>
 
 <script>
-	const formElement = document.getElementById("form-reset")!;
-	const formErrorElement = document.getElementById("form-reset.message")!;
+	const formElement = document.getElementById("form-reset") as HTMLFormElement;
+	const formErrorElement = document.getElementById("form-reset.message") as HTMLElement;
 
 	formElement.addEventListener("submit", async (e) => {
 		e.preventDefault();
@@ -42,7 +41,7 @@ if (user.registered2FA && !session.twoFactorVerified) {
 		const data = {
 			password: formData.get("password")
 		};
-		const response = await fetch("/api/password/reset", {
+		const response = await fetch("/api/password-reset/update-password", {
 			method: "POST",
 			body: JSON.stringify(data)
 		});

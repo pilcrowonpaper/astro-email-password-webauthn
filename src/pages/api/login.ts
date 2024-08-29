@@ -1,12 +1,12 @@
 import { ObjectParser } from "@pilcrowjs/object-parser";
-import { verifyPasswordHash } from "@lib/password";
-import { createSession, setSessionCookie } from "@lib/session";
-import { verifyEmailInput } from "@lib/email";
-import { Throttler } from "@lib/rate-limit";
-import { getUserFromEmail, getUserPasswordHash } from "@lib/user";
+import { verifyPasswordHash } from "@lib/server/password";
+import { createSession, setSessionCookie } from "@lib/server/session";
+import { verifyEmailInput } from "@lib/server/email";
+import { Throttler } from "@lib/server/rate-limit";
+import { getUserFromEmail, getUserPasswordHash } from "@lib/server/user";
 
 import type { APIContext } from "astro";
-import type { SessionFlags } from "@lib/session";
+import type { SessionFlags } from "@lib/server/session";
 
 const throttler = new Throttler<number>([0, 1, 2, 4, 8, 16, 30, 60, 180, 300]);
 

@@ -1,5 +1,5 @@
-import { getPasswordReset2FARedirect } from "@lib/2fa";
-import { validatePasswordResetSessionRequest } from "@lib/password";
+import { getPasswordReset2FARedirect } from "@lib/server/2fa";
+import { validatePasswordResetSessionRequest } from "@lib/server/password-reset";
 
 import type { APIContext } from "astro";
 

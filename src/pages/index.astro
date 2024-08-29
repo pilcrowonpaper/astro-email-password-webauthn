@@ -1,11 +1,14 @@
 ---
-import { get2FARedirect } from "@lib/2fa";
+import { get2FARedirect } from "@lib/server/2fa";
 
 if (Astro.locals.user === null || Astro.locals.session === null) {
 	return Astro.redirect("/login");
 }
 if (!Astro.locals.user.emailVerified) {
 	return Astro.redirect("/verify-email");
+}
+if (!Astro.locals.user.registered2FA) {
+	return Astro.redirect("/2fa/setup");
 }
 if (!Astro.locals.session.twoFactorVerified) {
 	return Astro.redirect(get2FARedirect(Astro.locals.user));
@@ -18,7 +21,7 @@ if (!Astro.locals.session.twoFactorVerified) {
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="viewport" content="width=device-width" />
 		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
+		<title>Astro email/password demo with WebAuthn</title>
 	</head>
 	<body>
 		<header>
@@ -33,11 +36,11 @@ if (!Astro.locals.session.twoFactorVerified) {
 </html>
 
 <script>
-	const logoutButton = document.getElementById("button-logout")!;
+	const logoutButtonElement = document.getElementById("button-logout") as HTMLButtonElement;
 
-	logoutButton.addEventListener("click", async () => {
-		await fetch("/api/logout", {
-			method: "POST"
+	logoutButtonElement.addEventListener("click", async () => {
+		await fetch("/api/session", {
+			method: "DELETE"
 		});
 		window.location.href = "/login";
 	});

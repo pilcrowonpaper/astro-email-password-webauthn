@@ -1,0 +1,64 @@
+---
+import { validatePasswordResetSessionRequest } from "@lib/server/password-reset";
+
+const { session, user } = validatePasswordResetSessionRequest(Astro);
+
+if (session === null) {
+	return Astro.redirect("/forgot-password");
+}
+if (!session.emailVerified) {
+	return Astro.redirect("/reset-password/verify-email");
+}
+if (!user.registered2FA) {
+	return Astro.redirect("/reset-password");
+}
+if (session.twoFactorVerified) {
+	return Astro.redirect("/reset-password");
+}
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="generator" content={Astro.generator} />
+		<title>Two-factor authentication</title>
+	</head>
+	<body>
+		<main>
+			<h1>Use your recovery code</h1>
+			<form id="form-recovery-code">
+				<label for="form-recovery-code.code">Recovery code</label>
+				<input id="form-recovery-code.code" name="code" required /><br />
+				<button>Verify</button>
+				<p id="form-recovery-code.message"></p>
+			</form>
+			{user.registeredSecurityKey && <a href="/reset-password/2fa/security-key">Use security keys</a>}
+			{user.registeredPasskey && <a href="/reset-password/2fa/passkey">Use passkeys</a>}
+			{user.registeredTOTP && <a href="/reset-password/2fa/totp">Use autheticator apps</a>}
+		</main>
+	</body>
+</html>
+
+<script>
+	const recoveryCodeFormElement = document.getElementById("form-recovery-code") as HTMLFormElement;
+	const recoveryCodeErrorElement = document.getElementById("form-recovery-code.message") as HTMLElement;
+
+	recoveryCodeFormElement.addEventListener("submit", async (e) => {
+		e.preventDefault();
+		const formData = new FormData(e.target as HTMLFormElement);
+		const data = {
+			code: formData.get("code")
+		};
+		const response = await fetch("/api/password-reset/verify-2fa/recovery-code", {
+			method: "POST",
+			body: JSON.stringify(data)
+		});
+		if (response.ok) {
+			window.location.href = "/reset-password";
+		} else {
+			recoveryCodeErrorElement.innerText = await response.text();
+		}
+	});
+</script>
