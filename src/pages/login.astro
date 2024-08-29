@@ -67,10 +67,10 @@ if (Astro.locals.session !== null && Astro.locals.user !== null) {
 		}
 	});
 
-	const passkeyButton = document.getElementById("button-passkey") as HTMLButtonElement;
+	const passkeyButtonElement = document.getElementById("button-passkey") as HTMLButtonElement;
 	const passkeyErrorElement = document.getElementById("message-passkey") as HTMLElement;
 
-	passkeyButton.addEventListener("click", async () => {
+	passkeyButtonElement.addEventListener("click", async () => {
 		const challenge = await createChallenge();
 
 		const credential = await navigator.credentials.get({

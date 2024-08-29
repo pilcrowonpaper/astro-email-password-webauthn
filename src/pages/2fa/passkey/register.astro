@@ -52,30 +52,30 @@ const encodedCredentialUserId = encodeBase64(credentialUserId);
 	import { createChallenge } from "@lib/client/webauthn";
 	import { decodeBase64, encodeBase64 } from "@oslojs/encoding";
 
-	const createCredentialButton = document.getElementById("button-create-credential") as HTMLButtonElement;
-	const form = document.getElementById("form-register-credential") as HTMLFormElement;
+	const createCredentialButtonElement = document.getElementById("button-create-credential") as HTMLButtonElement;
+	const formElement = document.getElementById("form-register-credential") as HTMLFormElement;
 	const messageElement = document.getElementById("form-register-credential.message") as HTMLElement;
-	const submitButton = document.getElementById("form-register-credential.button") as HTMLButtonElement;
-	const credentialDisplayNameInput = document.getElementById("credential-display-name") as HTMLInputElement;
-	const credentialNameInput = document.getElementById("credential-name") as HTMLInputElement;
-	const credentialUserIdInput = document.getElementById("credential_user_id") as HTMLInputElement;
-	const credentialIdsInput = document.getElementById("credential_ids") as HTMLInputElement;
+	const submitButtonElement = document.getElementById("form-register-credential.button") as HTMLButtonElement;
+	const credentialDisplayNameInputElement = document.getElementById("credential-display-name") as HTMLInputElement;
+	const credentialNameInputElement = document.getElementById("credential-name") as HTMLInputElement;
+	const credentialUserIdInputElement = document.getElementById("credential_user_id") as HTMLInputElement;
+	const credentialIdsInputElement = document.getElementById("credential_ids") as HTMLInputElement;
 
 	let encodedAttestationObject: string | null = null;
 	let encodedClientDataJSON: string | null = null;
 
-	createCredentialButton.addEventListener("click", async () => {
+	createCredentialButtonElement.addEventListener("click", async () => {
 		const challenge = await createChallenge();
-		const userId = decodeBase64(credentialUserIdInput.value);
-		const credentialIds = credentialIdsInput.value.split(",").map((i) => decodeBase64(i));
+		const userId = decodeBase64(credentialUserIdInputElement.value);
+		const credentialIds = credentialIdsInputElement.value.split(",").map((i) => decodeBase64(i));
 
 		const credential = await navigator.credentials.create({
 			publicKey: {
 				challenge,
 				user: {
-					displayName: credentialDisplayNameInput.value,
+					displayName: credentialDisplayNameInputElement.value,
 					id: userId,
-					name: credentialNameInput.value
+					name: credentialNameInputElement.value
 				},
 				rp: {
 					name: "My site"
@@ -115,11 +115,11 @@ const encodedCredentialUserId = encodeBase64(credentialUserId);
 
 		encodedClientDataJSON = encodeBase64(new Uint8Array(credential.response.clientDataJSON));
 
-		createCredentialButton.disabled = true;
-		submitButton.disabled = false;
+		createCredentialButtonElement.disabled = true;
+		submitButtonElement.disabled = false;
 	});
 
-	form.addEventListener("submit", async (e) => {
+	formElement.addEventListener("submit", async (e) => {
 		e.preventDefault();
 		if (encodedAttestationObject === null || encodedClientDataJSON === null) {
 			throw new Error();

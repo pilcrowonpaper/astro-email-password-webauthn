@@ -47,10 +47,10 @@ if (session.twoFactorVerified) {
 	import { createChallenge } from "@lib/client/webauthn";
 	import { encodeBase64 } from "@oslojs/encoding";
 
-	const button = document.getElementById("button-verify") as HTMLButtonElement;
+	const buttonElement = document.getElementById("button-verify") as HTMLButtonElement;
 	const errorElement = document.getElementById("message-verify") as HTMLElement;
 
-	button.addEventListener("click", async () => {
+	buttonElement.addEventListener("click", async () => {
 		const challenge = await createChallenge();
 
 		const credential = await navigator.credentials.get({

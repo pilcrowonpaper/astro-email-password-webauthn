@@ -53,7 +53,7 @@ if (verificationRequest === null || Date.now() >= verificationRequest.expiresAt.
 <script>
 	const formElement = document.getElementById("form-verify") as HTMLFormElement;
 	const formErrorElement = document.getElementById("form-verify.message") as HTMLElement;
-	const resendButton = document.getElementById("button-resend") as HTMLButtonElement;
+	const resendButtonElement = document.getElementById("button-resend") as HTMLButtonElement;
 	const resendMessageElement = document.getElementById("resend-message") as HTMLElement;
 
 	formElement.addEventListener("submit", async (e) => {
@@ -73,7 +73,7 @@ if (verificationRequest === null || Date.now() >= verificationRequest.expiresAt.
 		}
 	});
 
-	resendButton.addEventListener("click", async () => {
+	resendButtonElement.addEventListener("click", async () => {
 		const response = await fetch("/api/email-verification/resend-code", {
 			method: "POST"
 		});

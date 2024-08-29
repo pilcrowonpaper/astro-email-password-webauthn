@@ -50,12 +50,12 @@ const encodedCredentialUserId = credentials.map((c) => encodeBase64(c.id)).join(
 	import { createChallenge } from "@lib/client/webauthn";
 	import { encodeBase64, decodeBase64 } from "@oslojs/encoding";
 
-	const credentialIdsInput = document.getElementById("credential_ids") as HTMLInputElement;
+	const credentialIdsInputElement = document.getElementById("credential_ids") as HTMLInputElement;
 	const buttonElement = document.getElementById("button-authenticate") as HTMLButtonElement;
 	const messageElement = document.getElementById("message") as HTMLElement;
 
 	buttonElement.addEventListener("click", async () => {
-		const credentialIds = credentialIdsInput.value.split(",").map((i) => decodeBase64(i));
+		const credentialIds = credentialIdsInputElement.value.split(",").map((i) => decodeBase64(i));
 		const challenge = await createChallenge();
 
 		const credential = await navigator.credentials.get({
