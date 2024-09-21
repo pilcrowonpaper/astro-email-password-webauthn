@@ -93,9 +93,9 @@ const encodedCredentialUserId = encodeBase64(credentialUserId);
 				attestation: "none",
 				authenticatorSelection: {
 					userVerification: "discouraged",
-					authenticatorAttachment: "cross-platform",
 					residentKey: "discouraged",
-					requireResidentKey: false
+					requireResidentKey: false,
+					authenticatorAttachment: "cross-platform"
 				},
 				excludeCredentials: credentialIds.map((id) => {
 					return {
