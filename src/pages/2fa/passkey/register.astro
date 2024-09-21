@@ -93,7 +93,8 @@ const encodedCredentialUserId = encodeBase64(credentialUserId);
 				attestation: "none", // none for passkeys
 				authenticatorSelection: {
 					userVerification: "required",
-					residentKey: "preferred"
+					residentKey: "required",
+					requireResidentKey: true
 				},
 				excludeCredentials: credentialIds.map((id) => {
 					return {
