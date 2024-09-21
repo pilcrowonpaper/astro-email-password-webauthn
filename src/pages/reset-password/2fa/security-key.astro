@@ -1,6 +1,8 @@
 ---
 import { getPasswordReset2FARedirect } from "@lib/server/2fa";
 import { validatePasswordResetSessionRequest } from "@lib/server/password-reset";
+import { getUserSecurityKeyCredentials } from "@lib/server/webauthn";
+import { encodeBase64 } from "@oslojs/encoding";
 
 const { session, user } = validatePasswordResetSessionRequest(Astro);
 
@@ -19,6 +21,9 @@ if (!user.registeredSecurityKey) {
 if (session.twoFactorVerified) {
 	return Astro.redirect("/reset-password");
 }
+
+const credentials = getUserSecurityKeyCredentials(user.id);
+const encodedCredentialUserId = credentials.map((c) => encodeBase64(c.id)).join(",");
 ---
 
 <html lang="en">
@@ -41,22 +46,32 @@ if (session.twoFactorVerified) {
 			{user.registeredTOTP && <a href="/reset-password/2fa/totp">Use autheticator apps</a>}
 		</main>
 	</body>
+	<input type="hidden" id="credential_ids" value={encodedCredentialUserId} />
 </html>
 
 <script>
 	import { createChallenge } from "@lib/client/webauthn";
-	import { encodeBase64 } from "@oslojs/encoding";
+	import { decodeBase64, encodeBase64 } from "@oslojs/encoding";
 
+	const credentialIdsInputElement = document.getElementById("credential_ids") as HTMLInputElement;
 	const buttonElement = document.getElementById("button-verify") as HTMLButtonElement;
 	const errorElement = document.getElementById("message-verify") as HTMLElement;
 
 	buttonElement.addEventListener("click", async () => {
+		const credentialIds = credentialIdsInputElement.value.split(",").map((i) => decodeBase64(i));
+
 		const challenge = await createChallenge();
 
 		const credential = await navigator.credentials.get({
 			publicKey: {
 				challenge,
-				userVerification: "discouraged"
+				userVerification: "discouraged",
+				allowCredentials: credentialIds.map((id) => {
+					return {
+						id,
+						type: "public-key"
+					};
+				})
 			}
 		});
 
