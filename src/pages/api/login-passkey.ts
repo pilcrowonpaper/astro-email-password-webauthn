@@ -10,7 +10,7 @@ import { decodePKIXECDSASignature, decodeSEC1PublicKey, p256, verifyECDSASignatu
 import { ObjectParser } from "@pilcrowjs/object-parser";
 import { decodeBase64 } from "@oslojs/encoding";
 import { verifyWebAuthnChallenge, getPasskeyCredential } from "@lib/server/webauthn";
-import { createSession, setSessionCookie } from "@lib/server/session";
+import { createSession, generateSessionToken, setSessionTokenCookie } from "@lib/server/session";
 import { sha256 } from "@oslojs/crypto/sha2";
 import { decodePKCS1RSAPublicKey, sha256ObjectIdentifier, verifyRSASSAPKCS1v15Signature } from "@oslojs/crypto/rsa";
 
@@ -131,8 +131,9 @@ export async function POST(context: APIContext): Promise<Response> {
 	const sessionFlags: SessionFlags = {
 		twoFactorVerified: true
 	};
-	const session = createSession(credential.userId, sessionFlags);
-	setSessionCookie(context, session);
+	const sessionToken = generateSessionToken();
+	const session = createSession(sessionToken, credential.userId, sessionFlags);
+	setSessionTokenCookie(context, sessionToken, session.expiresAt);
 	return new Response(null, {
 		status: 204
 	});

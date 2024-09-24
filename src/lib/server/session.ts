@@ -1,10 +1,12 @@
 import { db } from "./db";
-import { encodeBase32 } from "@oslojs/encoding";
+import { encodeBase32, encodeHexLowerCase } from "@oslojs/encoding";
+import { sha256 } from "@oslojs/crypto/sha2";
 
 import type { User } from "./user";
 import type { APIContext } from "astro";
 
-export function validateSession(sessionId: string): SessionValidationResult {
+export function validateSessionToken(token: string): SessionValidationResult {
+	const sessionId = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
 	const row = db.queryOne(
 		`
 SELECT session.id, session.user_id, session.expires_at, session.two_factor_verified, user.id, user.email, user.username, user.email_verified, IIF(totp_credential.id IS NOT NULL, 1, 0), IIF(passkey_credential.id IS NOT NULL, 1, 0), IIF(security_key_credential.id IS NOT NULL, 1, 0) FROM session
@@ -65,34 +67,17 @@ export function invalidateUserSessionsExceptOne(userId: number, sessionId: strin
 	db.execute("DELETE FROM session WHERE user_id = ? AND id != ?", [userId, sessionId]);
 }
 
-export function validateRequest(context: APIContext): SessionValidationResult {
-	const sessionId = context.cookies.get("session")?.value ?? null;
-	if (sessionId === null) {
-		return {
-			session: null,
-			user: null
-		};
-	}
-	const result = validateSession(sessionId);
-	if (result.session !== null) {
-		setSessionCookie(context, result.session);
-	} else {
-		deleteSessionCookie(context);
-	}
-	return result;
-}
-
-export function setSessionCookie(context: APIContext, session: Session): void {
-	context.cookies.set("session", session.id, {
+export function setSessionTokenCookie(context: APIContext, token: string, expiresAt: Date): void {
+	context.cookies.set("session", token, {
 		httpOnly: true,
 		path: "/",
 		secure: import.meta.env.PROD,
 		sameSite: "lax",
-		expires: session.expiresAt
+		expires: expiresAt
 	});
 }
 
-export function deleteSessionCookie(context: APIContext): void {
+export function deleteSessionTokenCookie(context: APIContext): void {
 	context.cookies.set("session", "", {
 		httpOnly: true,
 		path: "/",
@@ -102,13 +87,17 @@ export function deleteSessionCookie(context: APIContext): void {
 	});
 }
 
-export function createSession(userId: number, flags: SessionFlags): Session {
-	const idBytes = new Uint8Array(20);
-	crypto.getRandomValues(idBytes);
-	const id = encodeBase32(idBytes).toLowerCase();
+export function generateSessionToken(): string {
+	const tokenBytes = new Uint8Array(20);
+	crypto.getRandomValues(tokenBytes);
+	const token = encodeBase32(tokenBytes).toLowerCase();
+	return token;
+}
 
+export function createSession(token: string, userId: number, flags: SessionFlags): Session {
+	const sessionId = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
 	const session: Session = {
-		id,
+		id: sessionId,
 		userId,
 		expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
 		twoFactorVerified: flags.twoFactorVerified

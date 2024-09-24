@@ -1,11 +1,16 @@
 import {
-	deletePasswordResetSessionCookie,
+	deletePasswordResetSessionTokenCookie,
 	invalidateUserPasswordResetSessions,
 	validatePasswordResetSessionRequest
 } from "@lib/server/password-reset";
 import { ObjectParser } from "@pilcrowjs/object-parser";
 import { verifyPasswordStrength } from "@lib/server/password";
-import { createSession, invalidateUserSessions, setSessionCookie } from "@lib/server/session";
+import {
+	createSession,
+	generateSessionToken,
+	invalidateUserSessions,
+	setSessionTokenCookie
+} from "@lib/server/session";
 import { updateUserPassword } from "@lib/server/user";
 
 import type { APIContext } from "astro";
@@ -46,9 +51,10 @@ export async function POST(context: APIContext): Promise<Response> {
 	const sessionFlags: SessionFlags = {
 		twoFactorVerified: true
 	};
-	const session = createSession(passwordResetSession.userId, sessionFlags);
-	setSessionCookie(context, session);
-	deletePasswordResetSessionCookie(context);
+	const sessionToken = generateSessionToken();
+	const session = createSession(sessionToken, passwordResetSession.userId, sessionFlags);
+	setSessionTokenCookie(context, sessionToken, session.expiresAt);
+	deletePasswordResetSessionTokenCookie(context);
 	return new Response(null, {
 		status: 204
 	});

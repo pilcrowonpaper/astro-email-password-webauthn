@@ -1,6 +1,6 @@
 import { ObjectParser } from "@pilcrowjs/object-parser";
 import { verifyPasswordHash } from "@lib/server/password";
-import { createSession, setSessionCookie } from "@lib/server/session";
+import { createSession, generateSessionToken, setSessionTokenCookie } from "@lib/server/session";
 import { verifyEmailInput } from "@lib/server/email";
 import { Throttler } from "@lib/server/rate-limit";
 import { getUserFromEmail, getUserPasswordHash } from "@lib/server/user";
@@ -55,7 +55,8 @@ export async function POST(context: APIContext): Promise<Response> {
 	const sessionFlags: SessionFlags = {
 		twoFactorVerified: false
 	};
-	const session = createSession(user.id, sessionFlags);
-	setSessionCookie(context, session);
+	const sessionToken = generateSessionToken();
+	const session = createSession(sessionToken, user.id, sessionFlags);
+	setSessionTokenCookie(context, sessionToken, session.expiresAt);
 	return new Response(null, { status: 204 });
 }
