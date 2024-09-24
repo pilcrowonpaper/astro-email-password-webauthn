@@ -1,25 +1,40 @@
 import { db } from "./db";
 import { generateRandomRecoveryCode } from "./utils";
 import { FixedRefillTokenBucket } from "./rate-limit";
+import { decryptToString, encryptString } from "./encryption";
 
 import type { User } from "./user";
 
 export const recoveryCodeBucket = new FixedRefillTokenBucket<number>(5, 60 * 60);
 
 export function resetUser2FAWithRecoveryCode(userId: number, recoveryCode: string): boolean {
-	db.execute("UPDATE session SET two_factor_verified = 0 WHERE user_id = ?", [userId]);
+	// Note: In Postgres and MySQL, these queries should be done in a transaction using SELECT FOR UPDATE
+	const row = db.queryOne("SELECT recovery_code FROM user WHERE id = ?", [userId]);
+	if (row === null) {
+		return false;
+	}
+	const encryptedRecoveryCode = row.bytes(0);
+	const userRecoveryCode = decryptToString(encryptedRecoveryCode);
+	if (recoveryCode !== userRecoveryCode) {
+		return false;
+	}
+
 	const newRecoveryCode = generateRandomRecoveryCode();
+	const encryptedNewRecoveryCode = encryptString(newRecoveryCode);
+
 	try {
 		db.execute("BEGIN TRANSACTION", []);
+		// Compare old recovery code to ensure recovery code wasn't updated.
 		const result = db.execute("UPDATE user SET recovery_code = ? WHERE id = ? AND recovery_code = ?", [
-			newRecoveryCode,
+			encryptedNewRecoveryCode,
 			userId,
-			recoveryCode
+			encryptedRecoveryCode
 		]);
 		if (result.changes < 1) {
-			db.execute("COMMIT", []);
+			db.execute("ROLLBACK", []);
 			return false;
 		}
+		db.execute("UPDATE session SET two_factor_verified = 0 WHERE user_id = ?", [userId]);
 		db.execute("DELETE FROM totp_credential WHERE user_id = ?", [userId]);
 		db.execute("DELETE FROM passkey_credential WHERE user_id = ?", [userId]);
 		db.execute("DELETE FROM security_key_credential WHERE user_id = ?", [userId]);

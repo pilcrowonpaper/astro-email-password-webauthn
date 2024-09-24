@@ -15,7 +15,7 @@ if (!Astro.locals.user.registered2FA) {
 if (Astro.locals.session.twoFactorVerified) {
 	return Astro.redirect("/");
 }
-if (!Astro.locals.user.registeredSecurityKey) {
+if (!Astro.locals.user.registeredPasskey) {
 	return Astro.redirect(get2FARedirect(Astro.locals.user));
 }
 
